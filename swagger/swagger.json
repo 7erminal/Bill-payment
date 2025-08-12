@@ -1,0 +1,953 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "beego Test API",
+        "description": "beego has a very cool tools to autogenerate documents for your API\n",
+        "version": "1.0.0",
+        "termsOfService": "http://beego.me/",
+        "contact": {
+            "email": "astaxie@gmail.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "basePath": "/v1",
+    "paths": {
+        "/bill-payment/account-query/{billercode}/{accountNumber}": {
+            "get": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "Account query\n\u003cbr\u003e",
+                "operationId": "RequestController.Account Query",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "billercode",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "accountNumber",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Request"
+                        }
+                    },
+                    "403": {
+                        "description": ":accountNumber is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/dstv-account-query/{accountNumber}": {
+            "get": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "get Request by id\n\u003cbr\u003e",
+                "operationId": "RequestController.DSTV Account Query",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "accountNumber",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Request"
+                        }
+                    },
+                    "403": {
+                        "description": ":accountNumber is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/ecg-account-query/{accountNumber}": {
+            "get": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "get Request by id\n\u003cbr\u003e",
+                "operationId": "RequestController.ECG Account Query",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "accountNumber",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Request"
+                        }
+                    },
+                    "403": {
+                        "description": ":accountNumber is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/ghana-water-account-query/{accountNumber}": {
+            "get": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "get Request by id\n\u003cbr\u003e",
+                "operationId": "RequestController.Water Account Query",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "accountNumber",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Request"
+                        }
+                    },
+                    "403": {
+                        "description": ":accountNumber is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/gotv-account-query/{accountNumber}": {
+            "get": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "get Request by id\n\u003cbr\u003e",
+                "operationId": "RequestController.GoTV Account Query",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "accountNumber",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Request"
+                        }
+                    },
+                    "403": {
+                        "description": ":accountNumber is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/pay-dstv-bill": {
+            "post": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "create Request\n\u003cbr\u003e",
+                "operationId": "RequestController.Pay DSTV Bill",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Request content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.DSTVPaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Request"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/pay-ecg-bill": {
+            "post": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "create Request\n\u003cbr\u003e",
+                "operationId": "RequestController.Pay ECG Bill",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Request content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.DSTVPaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Request"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/pay-gotv-bill": {
+            "post": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "create Request\n\u003cbr\u003e",
+                "operationId": "RequestController.Pay GoTV Bill",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Request content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.GOTVPaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Request"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/pay-startimes-bill": {
+            "post": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "create Request\n\u003cbr\u003e",
+                "operationId": "RequestController.Pay Startimes Bill",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Request content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.StartimesPaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Request"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/pay-water-bill": {
+            "post": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "create Request\n\u003cbr\u003e",
+                "operationId": "RequestController.Pay Water Bill",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Request content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.DSTVPaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Request"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/bill-payment/startimes-account-query/{accountNumber}": {
+            "get": {
+                "tags": [
+                    "bill-payment"
+                ],
+                "description": "get Request by id\n\u003cbr\u003e",
+                "operationId": "RequestController.Star times Account Query",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "PhoneNumber",
+                        "description": "header for Customer's phone number",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "SourceSystem",
+                        "description": "header for Source system",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "accountNumber",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Request"
+                        }
+                    },
+                    "403": {
+                        "description": ":accountNumber is empty"
+                    }
+                }
+            }
+        },
+        "/callback/process": {
+            "post": {
+                "tags": [
+                    "callback"
+                ],
+                "description": "create Callback\n\u003cbr\u003e",
+                "operationId": "CallbackController.Create",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Callback content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.CallbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CallbackResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/callback/transaction-status-check": {
+            "post": {
+                "tags": [
+                    "callback"
+                ],
+                "description": "Check the status of a transaction\n\u003cbr\u003e",
+                "operationId": "CallbackController.Status Check",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Callback content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.TransactionStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CallbackResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Customer_categories": {
+            "title": "Customer_categories",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Category": {
+                    "type": "string"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CustomerCategoryId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Description": {
+                    "type": "string"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.Customers": {
+            "title": "Customers",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CustomerCategory": {
+                    "$ref": "#/definitions/models.Customer_categories"
+                },
+                "CustomerId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Dob": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "FullName": {
+                    "type": "string"
+                },
+                "IdentificationNumber": {
+                    "type": "string"
+                },
+                "IdentificationType": {
+                    "$ref": "#/definitions/models.Identification_types"
+                },
+                "ImagePath": {
+                    "type": "string"
+                },
+                "LastTxnDate": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Location": {
+                    "type": "string"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Nickname": {
+                    "type": "string"
+                },
+                "PhoneNumber": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Identification_types": {
+            "title": "Identification_types",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Code": {
+                    "type": "string"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "IdentificationTypeId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Object": {
+            "title": "Object",
+            "type": "object",
+            "properties": {
+                "ObjectId": {
+                    "type": "string"
+                },
+                "PlayerName": {
+                    "type": "string"
+                },
+                "Score": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.Profile": {
+            "title": "Profile",
+            "type": "object",
+            "properties": {
+                "Address": {
+                    "type": "string"
+                },
+                "Age": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "Gender": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Request": {
+            "title": "Request",
+            "type": "object",
+            "properties": {
+                "ApiRequestId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CallbackResponse": {
+                    "type": "string"
+                },
+                "CustId": {
+                    "$ref": "#/definitions/models.Customers"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Request": {
+                    "type": "string"
+                },
+                "RequestAmount": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "RequestDate": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "RequestId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "RequestResponse": {
+                    "type": "string"
+                },
+                "RequestStatus": {
+                    "type": "string"
+                },
+                "RequestType": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.User": {
+            "title": "User",
+            "type": "object",
+            "properties": {
+                "Id": {
+                    "type": "string"
+                },
+                "Password": {
+                    "type": "string"
+                },
+                "Profile": {
+                    "$ref": "#/definitions/models.Profile"
+                },
+                "Username": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CallbackData": {
+            "title": "CallbackData",
+            "type": "object",
+            "properties": {
+                "Amount": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "AmountDebited": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "Charges": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "ClientReference": {
+                    "type": "string"
+                },
+                "Description": {
+                    "type": "string"
+                },
+                "ExternalTransactionId": {
+                    "type": "string"
+                },
+                "Meta": {
+                    "$ref": "#/definitions/requests.CallbackMeta"
+                },
+                "RecipientName": {
+                    "type": "string"
+                },
+                "TransactionId": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CallbackMeta": {
+            "title": "CallbackMeta",
+            "type": "object",
+            "properties": {
+                "Commission": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CallbackRequest": {
+            "title": "CallbackRequest",
+            "type": "object",
+            "properties": {
+                "Data": {
+                    "$ref": "#/definitions/requests.CallbackData"
+                },
+                "ResponseCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.DSTVPaymentRequest": {
+            "title": "DSTVPaymentRequest",
+            "type": "object",
+            "properties": {
+                "Amount": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "DestinationAccount": {
+                    "type": "string"
+                },
+                "PackageType": {
+                    "type": "string"
+                },
+                "RequestId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "requests.GOTVPaymentRequest": {
+            "title": "GOTVPaymentRequest",
+            "type": "object",
+            "properties": {
+                "Amount": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "DestinationAccount": {
+                    "type": "string"
+                },
+                "PackageType": {
+                    "type": "string"
+                },
+                "RequestId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "requests.StartimesPaymentRequest": {
+            "title": "StartimesPaymentRequest",
+            "type": "object",
+            "properties": {
+                "Amount": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "DestinationAccount": {
+                    "type": "string"
+                },
+                "PackageType": {
+                    "type": "string"
+                },
+                "RequestId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "requests.TransactionStatusRequest": {
+            "title": "TransactionStatusRequest",
+            "type": "object",
+            "properties": {
+                "NetworkTransactionID": {
+                    "type": "string"
+                },
+                "ThirdParthTransactionID": {
+                    "type": "string"
+                },
+                "TransactionID": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.CallbackResponse": {
+            "title": "CallbackResponse",
+            "type": "object",
+            "properties": {
+                "Result": {
+                    "type": "string"
+                },
+                "StatusCode": {
+                    "type": "boolean"
+                },
+                "StatusMessage": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "bill-payment",
+            "description": "RequestController operations for Request\n"
+        },
+        {
+            "name": "callback",
+            "description": "CallbackController operations for Callback\n"
+        }
+    ]
+}
