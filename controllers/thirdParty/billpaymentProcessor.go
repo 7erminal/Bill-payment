@@ -242,7 +242,7 @@ func AccountQuery(c *beego.Controller, req requests.ThirdPartyQueryRequest) (res
 func GetTransactionStatus(c *beego.Controller, req requests.TransactionStatusThirdPartyRequest) (responses.TransactionStatusThirdPartyResponse, error) {
 	host, _ := beego.AppConfig.String("statusCheckBaseUrl")
 	posSale, _ := beego.AppConfig.String("hubtelPOSSale")
-	authorizationKey, _ := beego.AppConfig.String("hubtelAuthorizationKey")
+	authorizationKey, _ := beego.AppConfig.String("authorizationKey")
 
 	logs.Info("Sending transaction ID ", req.TransactionID)
 
