@@ -245,6 +245,7 @@ func GetTransactionStatus(c *beego.Controller, req requests.TransactionStatusThi
 	authorizationKey, _ := beego.AppConfig.String("authorizationKey")
 
 	logs.Info("Sending transaction ID ", req.TransactionID)
+	logs.Info("Adding header Authorization with value ", "Basic "+authorizationKey)
 
 	// serviceId, _ := GetServiceId(req.Network)
 	logs.Info("Pos Sale ID is ", posSale)
