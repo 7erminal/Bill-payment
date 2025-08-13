@@ -4,6 +4,7 @@ import (
 	"billpayment_service/api"
 	"billpayment_service/structs/requests"
 	"billpayment_service/structs/responses"
+	"bytes"
 	"encoding/json"
 	"io"
 	"strings"
@@ -72,7 +73,12 @@ func ProcessBillPayment(c *beego.Controller, req requests.BillPaymentThirdPartyR
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responses.ThirdPartyBillPaymentResponse
@@ -121,7 +127,12 @@ func ProcessGhanaWaterBillPayment(c *beego.Controller, req requests.GhanaWaterBi
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responses.ThirdPartyBillPaymentResponse
@@ -163,7 +174,12 @@ func ECGAccountQuery(c *beego.Controller, req requests.ECGQueryRequest) (respons
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responses.ThirdPartyQueryResponseData
@@ -205,7 +221,12 @@ func AccountQuery(c *beego.Controller, req requests.ThirdPartyQueryRequest) (res
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responses.ThirdPartyQueryResponseData
@@ -251,7 +272,12 @@ func GetTransactionStatus(c *beego.Controller, req requests.TransactionStatusThi
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responses.TransactionStatusThirdPartyResponse

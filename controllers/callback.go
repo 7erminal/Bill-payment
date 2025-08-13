@@ -209,14 +209,16 @@ func (c *CallbackController) TransactionStatusCheck() {
 					Result:        nil,
 				}
 				c.Data["json"] = resp
-				return
+				// return
+			} else {
+				resp := responses.TransactionStatusResponse{
+					StatusCode:    responseCode,
+					StatusMessage: responseMessage,
+					Result:        response.Data,
+				}
+				c.Data["json"] = resp
 			}
-			resp := responses.TransactionStatusResponse{
-				StatusCode:    responseCode,
-				StatusMessage: responseMessage,
-				Result:        response.Data,
-			}
-			c.Data["json"] = resp
+
 			c.Ctx.Output.SetStatus(200)
 		} else {
 			logs.Info("Transaction not found for ID: %s", v.TransactionID)
