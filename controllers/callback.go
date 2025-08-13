@@ -243,4 +243,6 @@ func (c *CallbackController) TransactionStatusCheck() {
 		c.Data["json"] = resp
 		c.Ctx.Output.SetStatus(500)
 	}
+
+	c.ServeJSON()
 }
