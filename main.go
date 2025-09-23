@@ -34,5 +34,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	orm.Debug = true
 	beego.Run()
 }
