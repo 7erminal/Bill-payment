@@ -104,13 +104,25 @@ func GetAllBil_ins_transactions(query map[string]string, fields []string, sortby
 	var l []Bil_ins_transactions
 	qs = qs.OrderBy(sortFields...).RelatedSel()
 	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
+		o := orm.NewOrm()
 		if len(fields) == 0 {
 			for _, v := range l {
+				// Load related fields as needed
+				o.LoadRelated(&v, "BilTransactionId")
+				o.LoadRelated(&v, "Biller")
 				ml = append(ml, v)
 			}
 		} else {
 			// trim unused fields
 			for _, v := range l {
+				// Load related fields as needed
+				o.LoadRelated(&v, "BilTransactionId")
+				if v.BilTransactionId != nil {
+					o.LoadRelated(v.BilTransactionId, "TransactionBy")
+					o.LoadRelated(v.BilTransactionId, "Service")
+					o.LoadRelated(v.BilTransactionId, "Request")
+				}
+				o.LoadRelated(&v, "Biller")
 				m := make(map[string]interface{})
 				val := reflect.ValueOf(v)
 				for _, fname := range fields {
