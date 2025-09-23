@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 type Bil_ins_transactions struct {
@@ -104,7 +105,8 @@ func GetAllBil_ins_transactions(query map[string]string, fields []string, sortby
 	var l []Bil_ins_transactions
 	qs = qs.OrderBy(sortFields...).RelatedSel()
 	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
-		o := orm.NewOrm()
+		logs.Info("ORM Fetched records: ", len(l))
+		logs.Info("ORM Records: ", l)
 		if len(fields) == 0 {
 			for _, v := range l {
 				// Load related fields as needed
