@@ -33,6 +33,7 @@ func (c *RequestController) URLMapping() {
 	c.Mapping("PayWaterBill", c.PayWaterBill)
 	c.Mapping("PayGoTVBill", c.PayGoTVBill)
 	c.Mapping("PayStartimesBill", c.PayStartimesBill)
+	c.Mapping("BilTransactions", c.BilTransactions)
 }
 
 // PayDSTVBill ...
