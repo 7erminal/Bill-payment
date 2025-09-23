@@ -2106,11 +2106,12 @@ func (c *RequestController) BilTransactions() {
 
 	l, err := models.GetAllBil_ins_transactions(query, fields, sortby, order, offset, limit)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		logs.Error("Error fetching records: ", err)
 
 		statusCode = "500"
 		statusMessage = "An error occurred" + err.Error()
 	} else {
+		logs.Info("Records fetched: ", l)
 		if len(l) > 0 {
 			for _, record := range l {
 				logs.Info("Record: ", record)
