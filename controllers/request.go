@@ -6,7 +6,9 @@ import (
 	"billpayment_service/structs/requests"
 	"billpayment_service/structs/responses"
 	"encoding/json"
+	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -2037,5 +2039,122 @@ func (c *RequestController) PayWaterBill() {
 		}
 		c.Data["json"] = resp
 	}
+	c.ServeJSON()
+}
+
+// BilTransactions ...
+// @Title Airtime and Data Bundle Transactions
+// @Description get Request
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
+// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
+// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} models.Request
+// @Failure 403
+// @router /bil-transactions/ [get]
+func (c *RequestController) BilTransactions() {
+	var fields []string
+	var sortby []string
+	var order []string
+	var query = make(map[string]string)
+	var limit int64 = 12
+	var offset int64
+
+	// fields: col1,col2,entity.col3
+	if v := c.GetString("fields"); v != "" {
+		fields = strings.Split(v, ",")
+	}
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	// sortby: col1,col2
+	if v := c.GetString("sortby"); v != "" {
+		sortby = strings.Split(v, ",")
+	}
+	// order: desc,asc
+	if v := c.GetString("order"); v != "" {
+		order = strings.Split(v, ",")
+	}
+	// query: k:v,k:v
+	if v := c.GetString("query"); v != "" {
+		for _, cond := range strings.Split(v, ",") {
+			kv := strings.SplitN(cond, ":", 2)
+			if len(kv) != 2 {
+				c.Data["json"] = errors.New("error: invalid query key/value pair")
+				c.ServeJSON()
+				return
+			}
+			k, v := kv[0], kv[1]
+			query[k] = v
+		}
+	}
+
+	query["BilTransactionId__Service__ServiceCode__in"] = "'BILL_PAYMENT','AIRTIME','DATA_BUNDLE'"
+
+	statusCode := "500"
+	statusMessage := "No records found"
+
+	bilTransactions := []*responses.BilTransactionsData{}
+
+	l, err := models.GetAllBil_ins_transactions(query, fields, sortby, order, offset, limit)
+	if err != nil {
+		c.Data["json"] = err.Error()
+
+		statusCode = "500"
+		statusMessage = "An error occurred" + err.Error()
+	} else {
+		if len(l) > 0 {
+			for _, record := range l {
+				logs.Info("Record: ", record)
+				bilTxn, ok := record.(models.Bil_ins_transactions)
+				if ok {
+					logs.Info("Bil_ins_transaction: %+v", bilTxn)
+					bilTransaction := responses.BilTransactionsData{
+						TransactionId:        bilTxn.BilInsTransactionId,
+						TransactionRefNumber: bilTxn.BilTransactionId.TransactionRefNumber,
+						Service:              bilTxn.BilTransactionId.Service.ServiceName,
+						TransactionBy:        bilTxn.BilTransactionId.TransactionBy.FullName,
+						Amount:               bilTxn.BilTransactionId.Amount,
+						TransactingCurrency:  bilTxn.BilTransactionId.TransactingCurrency,
+						SourceChannel:        bilTxn.BilTransactionId.SourceChannel,
+						Source:               bilTxn.SenderAccountNumber,
+						Destination:          bilTxn.RecipientAccountNumber,
+						Charge:               bilTxn.BilTransactionId.Charge,
+						Status:               bilTxn.BilTransactionId.Status.StatusDescription,
+						DateCreated:          bilTxn.DateCreated.Format(time.RFC3339),
+						DateModified:         bilTxn.DateModified.Format(time.RFC3339),
+						CreatedBy:            bilTxn.CreatedBy,
+						ModifiedBy:           bilTxn.ModifiedBy,
+						Active:               bilTxn.Active,
+						BillerName:           bilTxn.Biller.BillerName,
+						NetworkName:          bilTxn.Network,
+					}
+
+					bilTransactions = append(bilTransactions, &bilTransaction)
+
+				}
+			}
+
+			statusCode = "200"
+			statusMessage = "Records found"
+		} else {
+			statusCode = "204"
+			statusMessage = "No records found"
+		}
+	}
+
+	response := responses.BilTransactionsListResponse{
+		StatusCode:    statusCode,
+		StatusMessage: statusMessage,
+		Result:        bilTransactions,
+	}
+	c.Data["json"] = response
 	c.ServeJSON()
 }

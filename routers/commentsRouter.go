@@ -81,6 +81,15 @@ func init() {
 
     beego.GlobalControllerRouter["billpayment_service/controllers:RequestController"] = append(beego.GlobalControllerRouter["billpayment_service/controllers:RequestController"],
         beego.ControllerComments{
+            Method: "BilTransactions",
+            Router: `/bil-transactions/`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["billpayment_service/controllers:RequestController"] = append(beego.GlobalControllerRouter["billpayment_service/controllers:RequestController"],
+        beego.ControllerComments{
             Method: "DSTVAccountQuery",
             Router: `/dstv-account-query/:accountNumber`,
             AllowHTTPMethods: []string{"get"},
