@@ -60,8 +60,19 @@ func GetAllBil_ins_transactions(query map[string]string, fields []string, sortby
 	// query k=v
 	for k, v := range query {
 		// rewrite dot-notation to Object__Attribute
-		k = strings.Replace(k, ".", "__", -1)
-		qs = qs.Filter(k, v)
+		if strings.HasSuffix(k, "__in") {
+			// split by comma into slice
+			items := strings.Split(v, ",")
+			// trim spaces
+			for i := range items {
+				items[i] = strings.TrimSpace(items[i])
+			}
+			k = strings.Replace(k, ".", "__", -1)
+			qs = qs.Filter(k, items) // []string passed here ✅
+		} else {
+			k = strings.Replace(k, ".", "__", -1)
+			qs = qs.Filter(k, v)
+		}
 	}
 	// order by:
 	var sortFields []string
