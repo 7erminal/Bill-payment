@@ -2097,7 +2097,8 @@ func (c *RequestController) BilTransactions() {
 		}
 	}
 
-	query["BilTransactionId__Service__ServiceCode__in"] = "'BILL_PAYMENT','AIRTIME','DATA_BUNDLE'"
+	query["BilTransactionId__Service__ServiceCode__in"] = "BILL_PAYMENT,AIRTIME,DATA_BUNDLE"
+	// query["BilTransactionId__Service__ServiceCode__in"] = "BILL_PAYMENT","AIRTIME","DATA_BUNDLE"
 
 	statusCode := "500"
 	statusMessage := "No records found"
