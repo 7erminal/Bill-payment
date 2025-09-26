@@ -136,6 +136,7 @@ func GetAllBil_ins_transactions(query map[string]string, fields []string, sortby
 					o.LoadRelated(v.BilTransactionId, "TransactionBy")
 					o.LoadRelated(v.BilTransactionId, "Service")
 					o.LoadRelated(v.BilTransactionId, "Request")
+					o.LoadRelated(v.BilTransactionId, "Status")
 				}
 				o.LoadRelated(&v, "Biller")
 				m := make(map[string]interface{})
