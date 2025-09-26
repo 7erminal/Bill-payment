@@ -2118,26 +2118,29 @@ func (c *RequestController) BilTransactions() {
 				logs.Info("Record: ", record)
 				bilTxn, ok := record.(models.Bil_ins_transactions)
 				if ok {
-					logs.Info("Bil_ins_transaction: %+v", bilTxn)
+					bilTxnJson, _ := json.MarshalIndent(bilTxn, "", "  ")
+					logs.Info("Bil_ins_transaction: %s", string(bilTxnJson))
+					// logs.Info("BilTransactionId: %+v", bilTxn.BilTransactionId)
 					bilTransaction := responses.BilTransactionsData{
-						TransactionId:        bilTxn.BilInsTransactionId,
-						TransactionRefNumber: bilTxn.BilTransactionId.TransactionRefNumber,
-						Service:              bilTxn.BilTransactionId.Service.ServiceName,
-						TransactionBy:        bilTxn.BilTransactionId.TransactionBy.FullName,
-						Amount:               bilTxn.BilTransactionId.Amount,
-						TransactingCurrency:  bilTxn.BilTransactionId.TransactingCurrency,
-						SourceChannel:        bilTxn.BilTransactionId.SourceChannel,
-						Source:               bilTxn.SenderAccountNumber,
-						Destination:          bilTxn.RecipientAccountNumber,
-						Charge:               bilTxn.BilTransactionId.Charge,
-						Status:               bilTxn.BilTransactionId.Status.StatusDescription,
-						DateCreated:          bilTxn.DateCreated.Format(time.RFC3339),
-						DateModified:         bilTxn.DateModified.Format(time.RFC3339),
-						CreatedBy:            bilTxn.CreatedBy,
-						ModifiedBy:           bilTxn.ModifiedBy,
-						Active:               bilTxn.Active,
-						BillerName:           bilTxn.Biller.BillerName,
-						NetworkName:          bilTxn.Network,
+						TransactionId:           bilTxn.BilInsTransactionId,
+						TransactionRefNumber:    bilTxn.BilTransactionId.TransactionRefNumber,
+						Service:                 bilTxn.BilTransactionId.Service.ServiceName,
+						TransactionBy:           bilTxn.BilTransactionId.TransactionBy.FullName,
+						Amount:                  bilTxn.BilTransactionId.Amount,
+						TransactingCurrency:     bilTxn.BilTransactionId.TransactingCurrency,
+						SourceChannel:           bilTxn.BilTransactionId.SourceChannel,
+						Source:                  bilTxn.SenderAccountNumber,
+						Destination:             bilTxn.RecipientAccountNumber,
+						Charge:                  bilTxn.BilTransactionId.Charge,
+						Status:                  bilTxn.BilTransactionId.Status.StatusDescription,
+						DateCreated:             bilTxn.DateCreated.Format(time.RFC3339),
+						DateModified:            bilTxn.DateModified.Format(time.RFC3339),
+						CreatedBy:               bilTxn.CreatedBy,
+						ModifiedBy:              bilTxn.ModifiedBy,
+						Active:                  bilTxn.Active,
+						BillerName:              bilTxn.Biller.BillerName,
+						NetworkName:             bilTxn.Network,
+						ExternalReferenceNumber: bilTxn.BilTransactionId.ExternalReferenceNumber,
 					}
 
 					bilTransactions = append(bilTransactions, &bilTransaction)
