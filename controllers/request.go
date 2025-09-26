@@ -2132,7 +2132,7 @@ func (c *RequestController) BilTransactions() {
 						Source:                  bilTxn.SenderAccountNumber,
 						Destination:             bilTxn.RecipientAccountNumber,
 						Charge:                  bilTxn.BilTransactionId.Charge,
-						Status:                  bilTxn.BilTransactionId.Status.StatusDescription,
+						Status:                  bilTxn.BilTransactionId.Status.StatusCode,
 						DateCreated:             bilTxn.DateCreated.Format(time.RFC3339),
 						DateModified:            bilTxn.DateModified.Format(time.RFC3339),
 						CreatedBy:               bilTxn.CreatedBy,
