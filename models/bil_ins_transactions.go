@@ -124,6 +124,12 @@ func GetAllBil_ins_transactions(query map[string]string, fields []string, sortby
 			for _, v := range l {
 				// Load related fields as needed
 				o.LoadRelated(&v, "BilTransactionId")
+				if v.BilTransactionId != nil {
+					o.LoadRelated(v.BilTransactionId, "TransactionBy")
+					o.LoadRelated(v.BilTransactionId, "Service")
+					o.LoadRelated(v.BilTransactionId, "Request")
+					o.LoadRelated(v.BilTransactionId, "Status")
+				}
 				o.LoadRelated(&v, "Biller")
 				ml = append(ml, v)
 			}
