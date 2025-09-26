@@ -63,10 +63,12 @@ func GetAllBil_ins_transactions(query map[string]string, fields []string, sortby
 		if strings.HasSuffix(k, "__in") {
 			// split by comma into slice
 			items := strings.Split(v, ",")
+			logs.Info("Items are: ", v)
 			// trim spaces
 			for i := range items {
 				items[i] = strings.TrimSpace(items[i])
 			}
+			logs.Info("Items after trim are: ", items)
 			k = strings.Replace(k, ".", "__", -1)
 			qs = qs.Filter(k, items) // []string passed here ✅
 		} else {
