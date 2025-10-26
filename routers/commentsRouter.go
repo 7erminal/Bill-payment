@@ -109,7 +109,7 @@ func init() {
     beego.GlobalControllerRouter["billpayment_service/controllers:RequestController"] = append(beego.GlobalControllerRouter["billpayment_service/controllers:RequestController"],
         beego.ControllerComments{
             Method: "GhanaWaterAccountQuery",
-            Router: `/ghana-water-account-query/:accountNumber`,
+            Router: `/ghana-water-account-query/:accountNumber/:mobileNumber`,
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
