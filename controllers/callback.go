@@ -6,7 +6,9 @@ import (
 	"billpayment_service/structs/requests"
 	"billpayment_service/structs/responses"
 	"encoding/json"
+	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -86,6 +88,14 @@ func (c *CallbackController) Post() {
 				c.Ctx.Output.SetStatus(404)
 			}
 
+			resText, err := json.Marshal(v)
+			if err != nil {
+				logs.Error("Failed to marshal callback request: %v", err)
+				// c.Data["json"] = "Invalid request format"
+				// c.ServeJSON()
+				// return
+			}
+
 			if err := models.UpdateBil_transactionsById(resp); err != nil {
 				logs.Info("Failed to update transaction status: %v", err)
 				responseCode = false
@@ -101,12 +111,70 @@ func (c *CallbackController) Post() {
 				// c.Data["json"] = map[string]string{"message": "Transaction updated successfully"}
 
 				// Update request with callback data
-				resText, err := json.Marshal(v)
-				if err != nil {
-					logs.Error("Failed to marshal callback request: %v", err)
-					// c.Data["json"] = "Invalid request format"
-					// c.ServeJSON()
-					// return
+
+				var fields []string
+				var sortby []string
+				var order []string
+				var query = make(map[string]string)
+				var limit int64 = 10
+				var offset int64
+
+				billerCode := models.Billers{}
+
+				query["BilTransactionId__TransactionId"] = strconv.FormatInt(resp.TransactionId, 10)
+				if v := c.GetString("query"); v != "" {
+					for _, cond := range strings.Split(v, ",") {
+						kv := strings.SplitN(cond, ":", 2)
+						if len(kv) != 2 {
+							c.Data["json"] = errors.New("Error: invalid query key/value pair")
+							c.ServeJSON()
+							return
+						}
+						k, v := kv[0], kv[1]
+						query[k] = v
+					}
+				}
+
+				if insTransactions, err := models.GetAllBil_ins_transactions(query, fields, sortby, order, offset, limit); err == nil {
+					for _, insTransaction := range insTransactions {
+						insTrans := insTransaction.(models.Bil_ins_transactions)
+						if insTrans.BilTransactionId != nil && insTrans.BilTransactionId.TransactionId == resp.TransactionId {
+							logs.Info("Found associated bill ins transaction: ", insTrans.BilInsTransactionId)
+							billInsTransaction := insTrans
+							billInsTransaction.DateModified = time.Now()
+							billInsTransaction.Response = string(resText)
+
+							billerCode = *billInsTransaction.Biller
+							if err := models.UpdateBil_ins_transactionsById(&billInsTransaction); err != nil {
+								logs.Error("Failed to update bill ins transaction: %v", err)
+							} else {
+								logs.Info("Bill ins transaction updated successfully")
+							}
+						}
+					}
+				} else {
+					logs.Error("Failed to retrieve bill ins transactions: %v", err)
+				}
+
+				insTransaction := models.Bil_ins_transactions{
+					BilTransactionId:       resp,
+					Amount:                 v.Data.Amount,
+					Biller:                 &billerCode,
+					SenderAccountNumber:    resp.Source,
+					RecipientAccountNumber: resp.Destination,
+					Network:                billerCode.BillerCode,
+					Request:                string(resText),
+					DateCreated:            time.Now(),
+					DateModified:           time.Now(),
+					CreatedBy:              1,
+					ModifiedBy:             1,
+					Active:                 1,
+				}
+
+				if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
+					logs.Error("Failed to add bill ins transaction: %v", err)
+				} else {
+					logs.Info("Bill ins transaction added successfully")
 				}
 
 				logs.Info("Callback response text: %s", string(resText))
@@ -116,6 +184,7 @@ func (c *CallbackController) Post() {
 					request.CallbackResponse = string(resText)
 
 					request.DateModified = time.Now()
+					request.RequestStatus = "Completed transaction"
 					if err := models.UpdateRequestById(request); err != nil {
 						logs.Error("Failed to update request: %v", err)
 						// c.Data["json"] = "Failed to update request"
