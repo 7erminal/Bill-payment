@@ -239,6 +239,53 @@ func AccountQuery(c *beego.Controller, req requests.ThirdPartyQueryRequest) (res
 	return data, nil
 }
 
+func GhanaWaterAccountQuery(c *beego.Controller, req requests.ThirdPartyQueryRequest2) (responses.ThirdPartyQueryResponseData, error) {
+	host, _ := beego.AppConfig.String("thirdPartyBaseUrl")
+	authorizationKey, _ := beego.AppConfig.String("authorizationKey")
+	prepaidId, _ := beego.AppConfig.String("hubtelPrepaidDepositID")
+
+	logs.Info("Sending account number ", req.DestinationAccount)
+
+	request := api.NewRequest(
+		host,
+		"/"+prepaidId+"/"+req.BillerID+"?destination="+req.DestinationAccount,
+		api.GET)
+	request.HeaderField["Authorization"] = "Basic " + authorizationKey
+
+	// request.Params = {"UserId": strconv.Itoa(int(userid))}
+	client := api.Client{
+		Request: request,
+		Type_:   "params",
+	}
+	res, err := client.SendRequest()
+	if err != nil {
+		logs.Error("client.Error: %v", err)
+		c.Data["json"] = err.Error()
+	}
+	defer res.Body.Close()
+	read, err := io.ReadAll(res.Body)
+	if err != nil {
+		c.Data["json"] = err.Error()
+	}
+
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
+	// data := map[string]interface{}{}
+	// var dataOri responses.UserOriResponseDTO
+	var data responses.ThirdPartyQueryResponseData
+	json.Unmarshal(read, &data)
+	c.Data["json"] = data
+
+	logs.Info("Resp is ", data)
+	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
+
+	return data, nil
+}
+
 func GetTransactionStatus(c *beego.Controller, req requests.TransactionStatusThirdPartyRequest) (responses.TransactionStatusThirdPartyResponse, error) {
 	host, _ := beego.AppConfig.String("statusCheckBaseUrl")
 	posSale, _ := beego.AppConfig.String("hubtelPOSSale")

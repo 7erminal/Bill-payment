@@ -575,9 +575,10 @@ func (c *RequestController) ECGAccountQuery() {
 // @Param	accountNumber		path 	string	true		"The key for staticblock"
 // @Success 200 {object} models.Request
 // @Failure 403 :accountNumber is empty
-// @router /ghana-water-account-query/:accountNumber [get]
+// @router /ghana-water-account-query/:accountNumber/:mobileNumber [get]
 func (c *RequestController) GhanaWaterAccountQuery() {
 	accountNumberStr := c.Ctx.Input.Param(":accountNumber")
+	mobilerNumberStr := c.Ctx.Input.Param(":mobileNumber")
 
 	logs.Info("Received request to query Ghana water account with number: ", accountNumberStr)
 
@@ -597,12 +598,13 @@ func (c *RequestController) GhanaWaterAccountQuery() {
 		}
 		c.Data["json"] = resp
 	} else {
-		req := requests.ThirdPartyQueryRequest{
+		req := requests.ThirdPartyQueryRequest2{
 			DestinationAccount: accountNumberStr,
 			BillerID:           biller.BillerReferenceId,
+			MobileNumber:       mobilerNumberStr,
 		}
-		logs.Info("Querying DSTV account with request: ", req)
-		getAccountDetails, err := thirdparty.AccountQuery(&c.Controller, req)
+		logs.Info("Querying Ghana Water account with request: ", req)
+		getAccountDetails, err := thirdparty.GhanaWaterAccountQuery(&c.Controller, req)
 		if err != nil {
 			logs.Error("Failed to get account details: %v", err)
 			responseMessage = "An error occurred while processing your request " + err.Error()

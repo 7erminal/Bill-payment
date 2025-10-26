@@ -60,6 +60,12 @@ type ThirdPartyQueryRequest struct {
 	DestinationAccount string
 }
 
+type ThirdPartyQueryRequest2 struct {
+	BillerID           string
+	DestinationAccount string
+	MobileNumber       string
+}
+
 type ECGPaymentRequest struct {
 	RequestId          int64
 	DestinationAccount string
