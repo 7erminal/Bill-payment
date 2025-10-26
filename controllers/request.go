@@ -580,7 +580,7 @@ func (c *RequestController) GhanaWaterAccountQuery() {
 	accountNumberStr := c.Ctx.Input.Param(":accountNumber")
 	mobilerNumberStr := c.Ctx.Input.Param(":mobileNumber")
 
-	logs.Info("Received request to query Ghana water account with number: ", accountNumberStr)
+	logs.Info("Received request to query Ghana water account with number: ", accountNumberStr, " and mobile number: ", mobilerNumberStr)
 
 	responseCode := false
 	responseMessage := "Request not processed"

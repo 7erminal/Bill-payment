@@ -248,7 +248,7 @@ func GhanaWaterAccountQuery(c *beego.Controller, req requests.ThirdPartyQueryReq
 
 	request := api.NewRequest(
 		host,
-		"/"+prepaidId+"/"+req.BillerID+"?destination="+req.DestinationAccount,
+		"/"+prepaidId+"/"+req.BillerID+"?destination="+req.DestinationAccount+"&mobile="+req.MobileNumber,
 		api.GET)
 	request.HeaderField["Authorization"] = "Basic " + authorizationKey
 
