@@ -42,9 +42,9 @@ func ProcessBillPayment(c *beego.Controller, req requests.BillPaymentThirdPartyR
 	prepaidId, _ := beego.AppConfig.String("hubtelPrepaidDepositID")
 	authorizationKey, _ := beego.AppConfig.String("hubtelAuthorizationKey")
 
-	logs.Info("Sending phone number ", req.PhoneNumber)
+	logs.Info("Sending phone number ", req.PhoneNumber, " for network ", req.Network)
 
-	serviceId, _ := GetServiceId(req.Network)
+	serviceId := req.ServiceId
 
 	request := api.NewRequest(
 		host,
