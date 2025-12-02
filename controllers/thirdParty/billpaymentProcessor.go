@@ -46,6 +46,8 @@ func ProcessBillPayment(c *beego.Controller, req requests.BillPaymentThirdPartyR
 
 	serviceId := req.ServiceId
 
+	logs.Info("Url is ", host+"/"+prepaidId+"/"+serviceId)
+
 	request := api.NewRequest(
 		host,
 		"/"+prepaidId+"/"+serviceId,
