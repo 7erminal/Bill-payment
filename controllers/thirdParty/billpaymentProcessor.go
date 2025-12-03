@@ -40,7 +40,7 @@ func containsIgnoreCase(s, substr string) bool {
 func ProcessBillPayment(c *beego.Controller, req requests.BillPaymentThirdPartyRequest) (responses.ThirdPartyBillPaymentResponse, error) {
 	host, _ := beego.AppConfig.String("thirdPartyBaseUrl")
 	prepaidId, _ := beego.AppConfig.String("hubtelPrepaidDepositID")
-	authorizationKey, _ := beego.AppConfig.String("hubtelAuthorizationKey")
+	authorizationKey, _ := beego.AppConfig.String("authorizationKey")
 
 	logs.Info("Sending phone number ", req.PhoneNumber, " for network ", req.Network)
 
