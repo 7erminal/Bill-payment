@@ -74,7 +74,7 @@ func (c *RequestController) PayDSTVBill() {
 			serviceCode := "BILL_PAYMENT"
 			if service, err := models.GetServicesByCode(serviceCode); err == nil {
 				v := models.Request{
-					RequestId:       req.RequestId,
+					ApiRequestId:    req.RequestId,
 					CustId:          cust,
 					Request:         string(reqText),
 					RequestType:     service.ServiceName,
@@ -828,7 +828,7 @@ func (c *RequestController) PayECGBill() {
 			serviceCode := "BILL_PAYMENT"
 			if service, err := models.GetServicesByCode(serviceCode); err == nil {
 				v := models.Request{
-					RequestId:       req.RequestId,
+					ApiRequestId:    req.RequestId,
 					CustId:          cust,
 					Request:         string(reqText),
 					RequestType:     service.ServiceName,
@@ -1141,7 +1141,7 @@ func (c *RequestController) PayStartimesBill() {
 			serviceCode := "BILL_PAYMENT"
 			if service, err := models.GetServicesByCode(serviceCode); err == nil {
 				v := models.Request{
-					RequestId:       req.RequestId,
+					ApiRequestId:    req.RequestId,
 					CustId:          cust,
 					Request:         string(reqText),
 					RequestType:     service.ServiceName,
@@ -1454,7 +1454,7 @@ func (c *RequestController) PayGoTVBill() {
 			serviceCode := "BILL_PAYMENT"
 			if service, err := models.GetServicesByCode(serviceCode); err == nil {
 				v := models.Request{
-					RequestId:       req.RequestId,
+					ApiRequestId:    req.RequestId,
 					CustId:          cust,
 					Request:         string(reqText),
 					RequestType:     service.ServiceName,
@@ -1767,7 +1767,7 @@ func (c *RequestController) PayWaterBill() {
 			serviceCode := "BILL_PAYMENT"
 			if service, err := models.GetServicesByCode(serviceCode); err == nil {
 				v := models.Request{
-					RequestId:       req.RequestId,
+					ApiRequestId:    req.RequestId,
 					CustId:          cust,
 					Request:         string(reqText),
 					RequestType:     service.ServiceName,
