@@ -1792,6 +1792,9 @@ func (c *RequestController) PayWaterBill() {
 						Destination:          req.DestinationAccount,
 						Charge:               0.0,    // Assuming no charge for simplicity
 						Status:               status, // Assuming 1 means successful
+						ExtraDetails1:        req.SessionId,
+						ExtraDetails2:        req.PhoneNumber,
+						ExtraDetails3:        req.Email,
 						DateCreated:          time.Now(),
 						DateModified:         time.Now(),
 						CreatedBy:            1,
@@ -1805,7 +1808,6 @@ func (c *RequestController) PayWaterBill() {
 							Bundle:    req.Bundle,
 							SessionId: req.SessionId, // Assuming this is the session ID for the request
 							Email:     req.Email,     // Assuming this is the email for the request
-
 						}
 
 						callbackurl := ""

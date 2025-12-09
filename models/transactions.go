@@ -23,7 +23,11 @@ type Bil_transactions struct {
 	Destination             string `orm:"size(255)"`
 	Charge                  float64
 	Commission              float64
-	ExternalReferenceNumber string        `orm:"size(255)"`
+	ExternalReferenceNumber string `orm:"size(255)"`
+	IsAsync                 bool
+	ExtraDetails1           string        `orm:"size(255)"`
+	ExtraDetails2           string        `orm:"size(255)"`
+	ExtraDetails3           string        `orm:"size(255)"`
 	Status                  *Status_codes `orm:"rel(fk)"`
 	DateCreated             time.Time     `orm:"type(datetime)"`
 	DateModified            time.Time     `orm:"type(datetime)"`

@@ -87,4 +87,5 @@ type GhanaWaterPaymentRequest struct {
 	Bundle             string
 	SessionId          string
 	Email              string
+	PhoneNumber        string
 }
