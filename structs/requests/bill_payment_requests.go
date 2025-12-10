@@ -67,21 +67,21 @@ type ThirdPartyQueryRequest2 struct {
 }
 
 type ECGPaymentRequest struct {
-	RequestId          int64
+	TransactionId      int64
 	DestinationAccount string
 	Amount             float64
 	PackageType        string
 }
 
 type StartimesPaymentRequest struct {
-	RequestId          int64
+	TransactionId      int64
 	DestinationAccount string
 	Amount             float64
 	PackageType        string
 }
 
 type GhanaWaterPaymentRequest struct {
-	RequestId          int64
+	TransactionId      int64
 	DestinationAccount string
 	Amount             float64
 	Bundle             string

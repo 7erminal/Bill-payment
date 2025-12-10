@@ -18,6 +18,7 @@ type Bil_ins_transactions struct {
 	Biller                 *Billers  `orm:"rel(fk);column(biller_id)"`
 	SenderAccountNumber    string    `orm:"size(255)"`
 	RecipientAccountNumber string    `orm:"size(255)"`
+	TransactionType        string    `orm:"size(150)"`
 	Network                string    `orm:"size(150)"`
 	Request                string    `orm:"size(255)"`
 	Response               string    `orm:"size(255)"`

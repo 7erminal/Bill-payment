@@ -7,7 +7,6 @@ import (
 	"billpayment_service/structs/responses"
 	"encoding/json"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -52,299 +51,198 @@ func (c *RequestController) PayDSTVBill() {
 
 	// authorization := ctx.Input.Header("Authorization")
 	phoneNumber := c.Ctx.Input.Header("PhoneNumber")
-	sourceSystem := c.Ctx.Input.Header("SourceSystem")
+	// sourceSystem := c.Ctx.Input.Header("SourceSystem")
 
 	responseCode := false
 	responseMessage := "Request not processed"
-
-	statusCode := "PENDING" // Assuming 5002 is the status code for "Request Pending"
-
-	reqText, err := json.Marshal(req)
-	if err != nil {
-		c.Data["json"] = "Invalid request format"
-		c.ServeJSON()
-		return
+	respData := responses.DSTVBillPaymentDataResponse{
+		Description:   "Payment for DSTV bill",
+		Amount:        req.Amount,
+		TransactionId: "",
 	}
 
-	status, err := models.GetStatus_codesByCode(statusCode)
-	if err == nil {
-		// Get customer by ID
-		if cust, err := models.GetCustomerByPhoneNumber(phoneNumber); err == nil {
-			// Restructure the request to match the model
-			serviceCode := "BILL_PAYMENT"
-			if service, err := models.GetServicesByCode(serviceCode); err == nil {
-				v := models.Request{
-					ApiRequestId:    req.RequestId,
-					CustId:          cust,
-					Request:         string(reqText),
-					RequestType:     service.ServiceName,
-					RequestStatus:   status.StatusDescription,
-					RequestAmount:   req.Amount,
-					RequestResponse: "",
-					RequestDate:     time.Now(),
-					DateCreated:     time.Now(),
-					DateModified:    time.Now(),
-				}
-				if _, err := models.AddRequest(&v); err == nil {
-					// Create a transaction record
-					transaction := models.Bil_transactions{
-						TransactionRefNumber: "TRX-" + strconv.FormatInt(time.Now().Unix(), 10) + strconv.FormatInt(v.RequestId, 10),
-						Service:              service, // Assuming service ID is 1 for airtime
-						Request:              &v,
-						TransactionBy:        cust,
-						Amount:               req.Amount,
-						TransactingCurrency:  "GHC", // Assuming USD for simplicity
-						SourceChannel:        sourceSystem,
-						Source:               phoneNumber,
-						Destination:          req.DestinationAccount,
-						Charge:               0.0,    // Assuming no charge for simplicity
-						Status:               status, // Assuming 1 means successful
-						DateCreated:          time.Now(),
-						DateModified:         time.Now(),
-						CreatedBy:            1,
-						ModifiedBy:           1,
-						Active:               1, // Assuming active status
-					}
-					if _, err := models.AddBil_transactions(&transaction); err == nil {
-						// Go to fulfillment
-						// Formulate the request to send to the third-party service
-						selectedPackage := requests.ThirdPartyDSTVReqExtraData{
-							Bundle: req.PackageType,
-						}
+	if transaction, err := models.GetBil_transactionsById(req.TransactionId); err == nil {
+		// Go to fulfillment
+		// Formulate the request to send to the third-party service
+		selectedPackage := requests.ThirdPartyDSTVReqExtraData{
+			Bundle: req.PackageType,
+		}
 
-						callbackurl := ""
-						if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
-							callbackurl = cbr.PropertyValue
-						} else {
-							logs.Error("Failed to get callback URL: %v", err)
-						}
+		callbackurl := ""
+		if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
+			callbackurl = cbr.PropertyValue
+		} else {
+			logs.Error("Failed to get callback URL: %v", err)
+		}
 
-						billerCode := "DSTV"
-						biller, err := models.GetBillerByCode(billerCode)
+		billerCode := "DSTV"
+		biller, err := models.GetBillerByCode(billerCode)
 
-						if err == nil {
-							tReq := requests.ThirdPartyDSTVPaymentRequest{
-								Amount:          req.Amount,
-								Destination:     req.DestinationAccount,
-								ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
-								CallbackUrl:     callbackurl,                      // Optional field for callback URL
-								ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
-								ServiceId:       biller.BillerReferenceId,
-							}
+		if err == nil {
+			tReq := requests.ThirdPartyDSTVPaymentRequest{
+				Amount:          req.Amount,
+				Destination:     req.DestinationAccount,
+				ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
+				CallbackUrl:     callbackurl,                      // Optional field for callback URL
+				ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
+				ServiceId:       biller.BillerReferenceId,
+			}
 
-							// Insert in INS Transactions table
-							reqText, err := json.Marshal(tReq)
-							if err != nil {
-								logs.Error("Failed to marshal request text: %v", err)
-								// c.Data["json"] = "Invalid request format"
-								// c.ServeJSON()
-								// return
-							}
+			// Insert in INS Transactions table
+			reqText, err := json.Marshal(tReq)
+			if err != nil {
+				logs.Error("Failed to marshal request text: %v", err)
+				// c.Data["json"] = "Invalid request format"
+				// c.ServeJSON()
+				// return
+			}
 
-							insTransaction := models.Bil_ins_transactions{
-								BilTransactionId:       &transaction,
-								Amount:                 req.Amount,
-								Biller:                 biller,
-								SenderAccountNumber:    phoneNumber,
-								RecipientAccountNumber: req.DestinationAccount,
-								Network:                billerCode,
-								Request:                string(reqText),
-								DateCreated:            time.Now(),
-								DateModified:           time.Now(),
-								CreatedBy:              1,
-								ModifiedBy:             1,
-								Active:                 1,
-							}
+			insTransaction := models.Bil_ins_transactions{
+				BilTransactionId:       transaction,
+				Amount:                 req.Amount,
+				Biller:                 biller,
+				SenderAccountNumber:    phoneNumber,
+				RecipientAccountNumber: req.DestinationAccount,
+				Network:                billerCode,
+				Request:                string(reqText),
+				DateCreated:            time.Now(),
+				DateModified:           time.Now(),
+				CreatedBy:              1,
+				ModifiedBy:             1,
+				Active:                 1,
+			}
 
-							if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
-								logs.Error("Failed to create INS transaction record: %v", err)
-								responseCode = false
-								responseMessage = "Failed to create INS transaction record"
-								// resp := responses.ThirdPartyBillPaymentApiResponse{
-								// 	StatusCode:    responseCode,
-								// 	StatusMessage: responseMessage,
-								// 	Result:        nil,
-								// }
-								// c.Data["json"] = resp
-								// c.ServeJSON()
-								// return
-							}
+			if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
+				logs.Error("Failed to create INS transaction record: %v", err)
+				responseCode = false
+				responseMessage = "Failed to create INS transaction record"
+				// resp := responses.ThirdPartyBillPaymentApiResponse{
+				// 	StatusCode:    responseCode,
+				// 	StatusMessage: responseMessage,
+				// 	Result:        nil,
+				// }
+				// c.Data["json"] = resp
+				// c.ServeJSON()
+				// return
+			}
 
-							// Call the third-party service to process the request
-							logs.Info("Processing dstv bill payment with third-party service: ", tReq)
-							if thirdPartyResponse, err := thirdparty.ProcessDSTVBillPayment(&c.Controller, tReq); err == nil {
+			// Call the third-party service to process the request
+			logs.Info("Processing dstv bill payment with third-party service: ", tReq)
+			if thirdPartyResponse, err := thirdparty.ProcessDSTVBillPayment(&c.Controller, tReq); err == nil {
 
-								if thirdPartyResponse.ResponseCode == "0001" {
-									// Transaction is pending
-									// Update the transaction status to pending
-									responseCode = true
-									responseMessage = "Request is being processed"
-									if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "PENDING:: Failed to update transaction status"
-										} else {
-											responseCode = true
-											responseMessage = "Request is being processed"
-										}
-									} else {
-										logs.Error("Failed to get status for pending transaction: %v", err)
-										responseCode = false
-										responseMessage = "PENDING: Failed to get status for pending transaction"
-									}
-								} else if thirdPartyResponse.ResponseCode == "0000" {
-									// Transaction is successful
-									// Update the transaction status to successful
-									responseCode = true
-									responseMessage = "Request is successful"
-									if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "SUCCESS:: Failed to update transaction status"
-										} else {
-											// Prepare the response
-											logs.Info("Transaction successful: ", transaction)
-											responseCode = true
-											responseMessage = "Transaction successful"
-										}
-									} else {
-										logs.Error("Failed to get status for successful transaction: %v", err)
-										responseCode = false
-										responseMessage = "SUCCESS:: Failed to get status for successful transaction"
-									}
-								} else {
-									// Transaction failed
-									// Update the transaction status to failed
-									responseCode = false
-									responseMessage = "Transaction failed"
-									if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "FAILED:: Failed to update transaction status"
-										}
-									} else {
-										logs.Error("Failed to get status for failed transaction: %v", err)
-										responseCode = false
-										responseMessage = "FAILED:: Failed to get status for failed transaction"
-									}
-								}
-
-								resText, err := json.Marshal(thirdPartyResponse)
-								if err != nil {
-									logs.Error("Failed to marshal response text: %v", err)
-									// c.Data["json"] = "Invalid request format"
-									// c.ServeJSON()
-									// return
-								}
-								v.RequestResponse = string(resText)
-								v.DateModified = time.Now()
-								if err := models.UpdateRequestById(&v); err != nil {
-									logs.Error("Failed to update request response: %v", err)
-									responseCode = true
-									responseMessage = "Success response:: Failed to update request response"
-								} else {
-									logs.Info("Request response updated successfully")
-								}
-
-								c.Ctx.Output.SetStatus(200)
-								// Prepare the response
-
-								// Create the response object
-								respData := responses.DSTVBillPaymentDataResponse{
-									Description:   "Payment for DSTV bill",
-									Amount:        req.Amount,
-									TransactionId: transaction.TransactionRefNumber,
-								}
-								response := responses.DSTVBillPaymentResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        &respData,
-								}
-								c.Data["json"] = response
-							} else {
-								logs.Error("Failed to process dstv request: %v", err)
-								responseCode = false
-								responseMessage = "Failed to process dstv request"
-								resp := responses.DSTVBillPaymentResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        nil,
-								}
-								c.Data["json"] = resp
-							}
-						} else {
-							logs.Error("Failed to get biller by code: %v", err)
+				if thirdPartyResponse.ResponseCode == "0001" {
+					// Transaction is pending
+					// Update the transaction status to pending
+					responseCode = true
+					responseMessage = "Request is being processed"
+					if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
 							responseCode = false
-							responseMessage = "Failed to get biller by code"
-							resp := responses.DSTVBillPaymentResponse{
-								StatusCode:    responseCode,
-								StatusMessage: responseMessage,
-								Result:        nil,
-							}
-							c.Data["json"] = resp
+							responseMessage = "PENDING:: Failed to update transaction status"
+						} else {
+							responseCode = true
+							responseMessage = "Request is being processed"
 						}
-
 					} else {
-						logs.Error("Failed to create transaction record: %v", err)
+						logs.Error("Failed to get status for pending transaction: %v", err)
 						responseCode = false
-						responseMessage = "Failed to create transaction record"
-						resp := responses.DSTVBillPaymentResponse{
-							StatusCode:    responseCode,
-							StatusMessage: responseMessage,
-							Result:        nil,
+						responseMessage = "PENDING: Failed to get status for pending transaction"
+					}
+				} else if thirdPartyResponse.ResponseCode == "0000" {
+					// Transaction is successful
+					// Update the transaction status to successful
+					responseCode = true
+					responseMessage = "Request is successful"
+					if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "SUCCESS:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							logs.Info("Transaction successful: ", transaction)
+							responseCode = true
+							responseMessage = "Transaction successful"
 						}
-						c.Data["json"] = resp
+					} else {
+						logs.Error("Failed to get status for successful transaction: %v", err)
+						responseCode = false
+						responseMessage = "SUCCESS:: Failed to get status for successful transaction"
 					}
 				} else {
-					logs.Error("Failed to create request record: %v", err)
+					// Transaction failed
+					// Update the transaction status to failed
 					responseCode = false
-					responseMessage = "Failed to create request log"
-					resp := responses.DSTVBillPaymentResponse{
-						StatusCode:    responseCode,
-						StatusMessage: responseMessage,
-						Result:        nil,
+					responseMessage = "Transaction failed"
+					if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "FAILED:: Failed to update transaction status"
+						} else {
+							responseCode = false
+							responseMessage = "Transaction failed"
+						}
+					} else {
+						logs.Error("Failed to get status for failed transaction: %v", err)
+						responseCode = false
+						responseMessage = "FAILED:: Failed to get status for failed transaction"
 					}
-					c.Data["json"] = resp
+				}
+
+				resText, err := json.Marshal(thirdPartyResponse)
+				if err != nil {
+					logs.Error("Failed to marshal response text: %v", err)
+					// c.Data["json"] = "Invalid request format"
+					// c.ServeJSON()
+					// return
+				}
+				if v, err := models.GetRequestById(transaction.Request.RequestId); err == nil {
+					v.RequestResponse = string(resText)
+					v.DateModified = time.Now()
+					if err := models.UpdateRequestById(v); err != nil {
+						logs.Error("Failed to update request response: %v", err)
+						responseCode = true
+						responseMessage = "Success response:: Failed to update request response"
+					} else {
+						logs.Info("Request response updated successfully")
+					}
+				} else {
+					logs.Error("Failed to retrieve request by ID: %v", err)
+				}
+
+				c.Ctx.Output.SetStatus(200)
+				// Prepare the response
+
+				// Create the response object
+				respData = responses.DSTVBillPaymentDataResponse{
+					Description:   "Payment for DSTV bill",
+					Amount:        req.Amount,
+					TransactionId: transaction.TransactionRefNumber,
 				}
 			} else {
-				logs.Error("Service not found: %v", err)
+				logs.Error("Failed to process dstv request: %v", err)
 				responseCode = false
-				responseMessage = "Failed to create transaction record. Service not found."
-				resp := responses.DSTVBillPaymentResponse{
-					StatusCode:    responseCode,
-					StatusMessage: responseMessage,
-					Result:        nil,
-				}
-				c.Data["json"] = resp
+				responseMessage = "Failed to process dstv request"
 			}
 		} else {
-			logs.Error("Customer not found: %v", err)
+			logs.Error("Failed to get biller by code: %v", err)
 			responseCode = false
-			responseMessage = "Failed to create transaction record"
-			resp := responses.DSTVBillPaymentResponse{
-				StatusCode:    responseCode,
-				StatusMessage: responseMessage,
-				Result:        nil,
-			}
-			c.Data["json"] = resp
+			responseMessage = "Failed to get biller by code"
 		}
-	} else {
-		logs.Error("Status not found: %v", err)
-		responseCode = false
-		responseMessage = "Failed to create transaction record"
-		resp := responses.DSTVBillPaymentResponse{
-			StatusCode:    responseCode,
-			StatusMessage: responseMessage,
-			Result:        nil,
-		}
-		c.Data["json"] = resp
+
 	}
+
+	response := responses.DSTVBillPaymentResponse{
+		StatusCode:    responseCode,
+		StatusMessage: responseMessage,
+		Result:        &respData,
+	}
+	c.Data["json"] = response
 	c.ServeJSON()
 }
 
@@ -805,301 +703,190 @@ func (c *RequestController) PayECGBill() {
 
 	// authorization := ctx.Input.Header("Authorization")
 	phoneNumber := c.Ctx.Input.Header("PhoneNumber")
-	sourceSystem := c.Ctx.Input.Header("SourceSystem")
+	// sourceSystem := c.Ctx.Input.Header("SourceSystem")
 
 	responseCode := false
 	responseMessage := "Request not processed"
 
-	statusCode := "PENDING" // Assuming 5002 is the status code for "Request Pending"
+	if transaction, err := models.GetBil_transactionsById(req.TransactionId); err == nil {
+		// Go to fulfillment
+		// Formulate the request to send to the third-party service
+		selectedPackage := requests.BillPaymentKeyRequest{
+			Bundle: req.PackageType,
+		}
 
-	reqText, err := json.Marshal(req)
-	if err != nil {
-		c.Data["json"] = "Invalid request format"
-		c.ServeJSON()
-		return
-	}
-	logs.Info("Received request to pay ECG bill: ", string(reqText))
+		callbackurl := ""
+		if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
+			callbackurl = cbr.PropertyValue
+		} else {
+			logs.Error("Failed to get callback URL: %v", err)
+		}
 
-	status, err := models.GetStatus_codesByCode(statusCode)
-	if err == nil {
-		// Get customer by ID
-		if cust, err := models.GetCustomerByPhoneNumber(phoneNumber); err == nil {
-			// Restructure the request to match the model
-			serviceCode := "BILL_PAYMENT"
-			if service, err := models.GetServicesByCode(serviceCode); err == nil {
-				v := models.Request{
-					ApiRequestId:    req.RequestId,
-					CustId:          cust,
-					Request:         string(reqText),
-					RequestType:     service.ServiceName,
-					RequestStatus:   status.StatusDescription,
-					RequestAmount:   req.Amount,
-					RequestResponse: "",
-					RequestDate:     time.Now(),
-					DateCreated:     time.Now(),
-					DateModified:    time.Now(),
-				}
-				if _, err := models.AddRequest(&v); err == nil {
-					// Create a transaction record
-					transaction := models.Bil_transactions{
-						TransactionRefNumber: "TRX-" + strconv.FormatInt(time.Now().Unix(), 10) + strconv.FormatInt(v.RequestId, 10),
-						Service:              service, // Assuming service ID is 1 for airtime
-						Request:              &v,
-						TransactionBy:        cust,
-						Amount:               req.Amount,
-						TransactingCurrency:  "GHC", // Assuming USD for simplicity
-						SourceChannel:        sourceSystem,
-						Source:               phoneNumber,
-						Destination:          req.DestinationAccount,
-						Charge:               0.0,    // Assuming no charge for simplicity
-						Status:               status, // Assuming 1 means successful
-						DateCreated:          time.Now(),
-						DateModified:         time.Now(),
-						CreatedBy:            1,
-						ModifiedBy:           1,
-						Active:               1, // Assuming active status
-					}
-					if _, err := models.AddBil_transactions(&transaction); err == nil {
-						// Go to fulfillment
-						// Formulate the request to send to the third-party service
-						selectedPackage := requests.BillPaymentKeyRequest{
-							Bundle: req.PackageType,
-						}
+		billerCode := "ECG"
+		biller, err := models.GetBillerByCode(billerCode)
 
-						callbackurl := ""
-						if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
-							callbackurl = cbr.PropertyValue
-						} else {
-							logs.Error("Failed to get callback URL: %v", err)
-						}
+		if err == nil {
+			tReq := requests.BillPaymentThirdPartyRequest{
+				Amount:          req.Amount,
+				Destination:     req.DestinationAccount,
+				ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
+				CallbackUrl:     callbackurl,                      // Optional field for callback URL
+				ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
+				ServiceId:       biller.BillerReferenceId,
+			}
 
-						billerCode := "ECG"
-						biller, err := models.GetBillerByCode(billerCode)
+			// Call the third-party service to process the request
+			logs.Info("Processing dstv bill payment with third-party service: ", tReq)
 
-						if err == nil {
-							tReq := requests.BillPaymentThirdPartyRequest{
-								Amount:          req.Amount,
-								Destination:     req.DestinationAccount,
-								ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
-								CallbackUrl:     callbackurl,                      // Optional field for callback URL
-								ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
-								ServiceId:       biller.BillerReferenceId,
-							}
+			// Insert in INS Transactions table
+			reqText, err := json.Marshal(tReq)
+			if err != nil {
+				logs.Error("Failed to marshal request text: %v", err)
+				// c.Data["json"] = "Invalid request format"
+				// c.ServeJSON()
+				// return
+			}
 
-							// Call the third-party service to process the request
-							logs.Info("Processing dstv bill payment with third-party service: ", tReq)
+			insTransaction := models.Bil_ins_transactions{
+				BilTransactionId:       transaction,
+				Amount:                 req.Amount,
+				Biller:                 biller,
+				SenderAccountNumber:    phoneNumber,
+				RecipientAccountNumber: req.DestinationAccount,
+				Network:                billerCode,
+				Request:                string(reqText),
+				DateCreated:            time.Now(),
+				DateModified:           time.Now(),
+				CreatedBy:              1,
+				ModifiedBy:             1,
+				Active:                 1,
+			}
 
-							// Insert in INS Transactions table
-							reqText, err := json.Marshal(tReq)
-							if err != nil {
-								logs.Error("Failed to marshal request text: %v", err)
-								// c.Data["json"] = "Invalid request format"
-								// c.ServeJSON()
-								// return
-							}
+			if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
+				logs.Error("Failed to create INS transaction record: %v", err)
+				responseCode = false
+				responseMessage = "Failed to create INS transaction record"
+				// resp := responses.ThirdPartyBillPaymentApiResponse{
+				// 	StatusCode:    responseCode,
+				// 	StatusMessage: responseMessage,
+				// 	Result:        nil,
+				// }
+				// c.Data["json"] = resp
+				// c.ServeJSON()
+				// return
+			}
+			logs.Info("Processing bill payment with third-party service: ", tReq)
+			if thirdPartyResponse, err := thirdparty.ProcessBillPayment(&c.Controller, tReq); err == nil {
 
-							insTransaction := models.Bil_ins_transactions{
-								BilTransactionId:       &transaction,
-								Amount:                 req.Amount,
-								Biller:                 biller,
-								SenderAccountNumber:    phoneNumber,
-								RecipientAccountNumber: req.DestinationAccount,
-								Network:                billerCode,
-								Request:                string(reqText),
-								DateCreated:            time.Now(),
-								DateModified:           time.Now(),
-								CreatedBy:              1,
-								ModifiedBy:             1,
-								Active:                 1,
-							}
-
-							if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
-								logs.Error("Failed to create INS transaction record: %v", err)
-								responseCode = false
-								responseMessage = "Failed to create INS transaction record"
-								// resp := responses.ThirdPartyBillPaymentApiResponse{
-								// 	StatusCode:    responseCode,
-								// 	StatusMessage: responseMessage,
-								// 	Result:        nil,
-								// }
-								// c.Data["json"] = resp
-								// c.ServeJSON()
-								// return
-							}
-							logs.Info("Processing bill payment with third-party service: ", tReq)
-							if thirdPartyResponse, err := thirdparty.ProcessBillPayment(&c.Controller, tReq); err == nil {
-
-								if thirdPartyResponse.ResponseCode == "0001" {
-									// Transaction is pending
-									// Update the transaction status to pending
-									responseCode = true
-									responseMessage = "Request is being processed"
-									if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "PENDING:: Failed to update transaction status"
-										} else {
-											responseCode = true
-											responseMessage = "Request is being processed"
-										}
-									} else {
-										logs.Error("Failed to get status for pending transaction: %v", err)
-										responseCode = false
-										responseMessage = "PENDING: Failed to get status for pending transaction"
-									}
-								} else if thirdPartyResponse.ResponseCode == "0000" {
-									// Transaction is successful
-									// Update the transaction status to successful
-									responseCode = true
-									responseMessage = "Request is successful"
-									if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "SUCCESS:: Failed to update transaction status"
-										} else {
-											// Prepare the response
-											logs.Info("Transaction successful: ", transaction)
-											responseCode = true
-											responseMessage = "Transaction successful"
-										}
-									} else {
-										logs.Error("Failed to get status for successful transaction: %v", err)
-										responseCode = false
-										responseMessage = "SUCCESS:: Failed to get status for successful transaction"
-									}
-								} else {
-									// Transaction failed
-									// Update the transaction status to failed
-									responseCode = false
-									responseMessage = "Transaction failed"
-									if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "FAILED:: Failed to update transaction status"
-										}
-									} else {
-										logs.Error("Failed to get status for failed transaction: %v", err)
-										responseCode = false
-										responseMessage = "FAILED:: Failed to get status for failed transaction"
-									}
-								}
-
-								resText, err := json.Marshal(thirdPartyResponse)
-								if err != nil {
-									logs.Error("Failed to marshal response text: %v", err)
-									// c.Data["json"] = "Invalid request format"
-									// c.ServeJSON()
-									// return
-								}
-								v.RequestResponse = string(resText)
-								v.DateModified = time.Now()
-								if err := models.UpdateRequestById(&v); err != nil {
-									logs.Error("Failed to update request response: %v", err)
-									responseCode = true
-									responseMessage = "Success response:: Failed to update request response"
-								} else {
-									logs.Info("Request response updated successfully")
-								}
-
-								c.Ctx.Output.SetStatus(200)
-								// Prepare the response
-
-								// Create the response object
-								respData := responses.ThirdPartyBillPaymentDataApiResponse{
-									Description:   "Payment for " + billerCode + " bill",
-									Amount:        req.Amount,
-									TransactionId: transaction.TransactionRefNumber,
-								}
-								response := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        &respData,
-								}
-								c.Data["json"] = response
-							} else {
-								logs.Error("Failed to process "+billerCode+" request: %v", err)
-								responseCode = false
-								responseMessage = "Failed to process " + billerCode + " request"
-								resp := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        nil,
-								}
-								c.Data["json"] = resp
-							}
-						} else {
-							logs.Error("Failed to get biller by code: %v", err)
+				if thirdPartyResponse.ResponseCode == "0001" {
+					// Transaction is pending
+					// Update the transaction status to pending
+					responseCode = true
+					responseMessage = "Request is being processed"
+					if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
 							responseCode = false
-							responseMessage = "Failed to get biller by code"
-							resp := responses.ThirdPartyBillPaymentApiResponse{
-								StatusCode:    responseCode,
-								StatusMessage: responseMessage,
-								Result:        nil,
-							}
-							c.Data["json"] = resp
+							responseMessage = "PENDING:: Failed to update transaction status"
+						} else {
+							responseCode = true
+							responseMessage = "Request is being processed"
 						}
-
 					} else {
-						logs.Error("Failed to create transaction record: %v", err)
+						logs.Error("Failed to get status for pending transaction: %v", err)
 						responseCode = false
-						responseMessage = "Failed to create transaction record"
-						resp := responses.ThirdPartyBillPaymentApiResponse{
-							StatusCode:    responseCode,
-							StatusMessage: responseMessage,
-							Result:        nil,
+						responseMessage = "PENDING: Failed to get status for pending transaction"
+					}
+				} else if thirdPartyResponse.ResponseCode == "0000" {
+					// Transaction is successful
+					// Update the transaction status to successful
+					responseCode = true
+					responseMessage = "Request is successful"
+					if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "SUCCESS:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							logs.Info("Transaction successful: ", transaction)
+							responseCode = true
+							responseMessage = "Transaction successful"
 						}
-						c.Data["json"] = resp
+					} else {
+						logs.Error("Failed to get status for successful transaction: %v", err)
+						responseCode = false
+						responseMessage = "SUCCESS:: Failed to get status for successful transaction"
 					}
 				} else {
-					logs.Error("Failed to create request record: %v", err)
+					// Transaction failed
+					// Update the transaction status to failed
 					responseCode = false
-					responseMessage = "Failed to create request log"
-					resp := responses.ThirdPartyBillPaymentApiResponse{
-						StatusCode:    responseCode,
-						StatusMessage: responseMessage,
-						Result:        nil,
+					responseMessage = "Transaction failed"
+					if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "FAILED:: Failed to update transaction status"
+						} else {
+							responseCode = true
+							responseMessage = "Transaction failed"
+						}
+					} else {
+						logs.Error("Failed to get status for failed transaction: %v", err)
+						responseCode = false
+						responseMessage = "FAILED:: Failed to get status for failed transaction"
 					}
-					c.Data["json"] = resp
 				}
+
+				resText, err := json.Marshal(thirdPartyResponse)
+				if err != nil {
+					logs.Error("Failed to marshal response text: %v", err)
+					// c.Data["json"] = "Invalid request format"
+					// c.ServeJSON()
+					// return
+				}
+
+				if v, err := models.GetRequestById(transaction.Request.RequestId); err == nil {
+					v.RequestResponse = string(resText)
+					v.DateModified = time.Now()
+					if err := models.UpdateRequestById(v); err != nil {
+						logs.Error("Failed to update request response: %v", err)
+						responseCode = true
+						responseMessage = "Success response:: Failed to update request response"
+					} else {
+						logs.Info("Request response updated successfully")
+					}
+				} else {
+					logs.Error("Failed to get request by ID: %v", err)
+				}
+
 			} else {
-				logs.Error("Service not found: %v", err)
+				logs.Error("Failed to process "+billerCode+" request: %v", err)
 				responseCode = false
-				responseMessage = "Failed to create transaction record. Service not found."
-				resp := responses.ThirdPartyBillPaymentApiResponse{
-					StatusCode:    responseCode,
-					StatusMessage: responseMessage,
-					Result:        nil,
-				}
-				c.Data["json"] = resp
+				responseMessage = "Failed to process " + billerCode + " request"
 			}
 		} else {
-			logs.Error("Customer not found: %v", err)
+			logs.Error("Failed to get biller by code: %v", err)
 			responseCode = false
-			responseMessage = "Failed to create transaction record"
-			resp := responses.ThirdPartyBillPaymentApiResponse{
-				StatusCode:    responseCode,
-				StatusMessage: responseMessage,
-				Result:        nil,
-			}
-			c.Data["json"] = resp
+			responseMessage = "Failed to get biller by code"
 		}
 	} else {
-		logs.Error("Status not found: %v", err)
+		logs.Error("Failed to find transaction: %v", err)
 		responseCode = false
-		responseMessage = "Failed to create transaction record"
-		resp := responses.ThirdPartyBillPaymentApiResponse{
-			StatusCode:    responseCode,
-			StatusMessage: responseMessage,
-			Result:        nil,
-		}
-		c.Data["json"] = resp
+		responseMessage = "Failed to find transaction"
 	}
+
+	response := responses.ThirdPartyBillPaymentApiResponse{
+		StatusCode:    responseCode,
+		StatusMessage: responseMessage,
+		Result:        nil,
+	}
+	c.Data["json"] = response
+
 	c.ServeJSON()
 }
 
@@ -1119,300 +906,209 @@ func (c *RequestController) PayStartimesBill() {
 
 	// authorization := ctx.Input.Header("Authorization")
 	phoneNumber := c.Ctx.Input.Header("PhoneNumber")
-	sourceSystem := c.Ctx.Input.Header("SourceSystem")
+	// sourceSystem := c.Ctx.Input.Header("SourceSystem")
 
 	responseCode := false
 	responseMessage := "Request not processed"
 
-	statusCode := "PENDING" // Assuming 5002 is the status code for "Request Pending"
+	// statusCode := "PENDING" // Assuming 5002 is the status code for "Request Pending"
 
-	reqText, err := json.Marshal(req)
-	if err != nil {
-		c.Data["json"] = "Invalid request format"
-		c.ServeJSON()
-		return
-	}
+	if transaction, err := models.GetBil_transactionsById(req.TransactionId); err == nil {
+		// Go to fulfillment
+		// Formulate the request to send to the third-party service
+		selectedPackage := requests.BillPaymentKeyRequest{
+			Bundle: req.PackageType,
+		}
 
-	status, err := models.GetStatus_codesByCode(statusCode)
-	if err == nil {
-		// Get customer by ID
-		if cust, err := models.GetCustomerByPhoneNumber(phoneNumber); err == nil {
-			// Restructure the request to match the model
-			serviceCode := "BILL_PAYMENT"
-			if service, err := models.GetServicesByCode(serviceCode); err == nil {
-				v := models.Request{
-					ApiRequestId:    req.RequestId,
-					CustId:          cust,
-					Request:         string(reqText),
-					RequestType:     service.ServiceName,
-					RequestStatus:   status.StatusDescription,
-					RequestAmount:   req.Amount,
-					RequestResponse: "",
-					RequestDate:     time.Now(),
-					DateCreated:     time.Now(),
-					DateModified:    time.Now(),
-				}
-				if _, err := models.AddRequest(&v); err == nil {
-					// Create a transaction record
-					transaction := models.Bil_transactions{
-						TransactionRefNumber: "TRX-" + strconv.FormatInt(time.Now().Unix(), 10) + strconv.FormatInt(v.RequestId, 10),
-						Service:              service, // Assuming service ID is 1 for airtime
-						Request:              &v,
-						TransactionBy:        cust,
-						Amount:               req.Amount,
-						TransactingCurrency:  "GHC", // Assuming USD for simplicity
-						SourceChannel:        sourceSystem,
-						Source:               phoneNumber,
-						Destination:          req.DestinationAccount,
-						Charge:               0.0,    // Assuming no charge for simplicity
-						Status:               status, // Assuming 1 means successful
-						DateCreated:          time.Now(),
-						DateModified:         time.Now(),
-						CreatedBy:            1,
-						ModifiedBy:           1,
-						Active:               1, // Assuming active status
-					}
-					if _, err := models.AddBil_transactions(&transaction); err == nil {
-						// Go to fulfillment
-						// Formulate the request to send to the third-party service
-						selectedPackage := requests.BillPaymentKeyRequest{
-							Bundle: req.PackageType,
-						}
+		callbackurl := ""
+		if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
+			callbackurl = cbr.PropertyValue
+		} else {
+			logs.Error("Failed to get callback URL: %v", err)
+		}
 
-						callbackurl := ""
-						if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
-							callbackurl = cbr.PropertyValue
-						} else {
-							logs.Error("Failed to get callback URL: %v", err)
-						}
+		billerCode := "STARTIMES"
+		biller, err := models.GetBillerByCode(billerCode)
 
-						billerCode := "STARTIMES"
-						biller, err := models.GetBillerByCode(billerCode)
+		if err == nil {
+			tReq := requests.BillPaymentThirdPartyRequest{
+				Amount:          req.Amount,
+				Destination:     req.DestinationAccount,
+				ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
+				CallbackUrl:     callbackurl,                      // Optional field for callback URL
+				ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
+				ServiceId:       biller.BillerReferenceId,
+			}
 
-						if err == nil {
-							tReq := requests.BillPaymentThirdPartyRequest{
-								Amount:          req.Amount,
-								Destination:     req.DestinationAccount,
-								ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
-								CallbackUrl:     callbackurl,                      // Optional field for callback URL
-								ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
-								ServiceId:       biller.BillerReferenceId,
-							}
+			// Call the third-party service to process the request
+			logs.Info("Processing dstv bill payment with third-party service: ", tReq)
 
-							// Call the third-party service to process the request
-							logs.Info("Processing dstv bill payment with third-party service: ", tReq)
+			// Insert in INS Transactions table
+			reqText, err := json.Marshal(tReq)
+			if err != nil {
+				logs.Error("Failed to marshal request text: %v", err)
+				// c.Data["json"] = "Invalid request format"
+				// c.ServeJSON()
+				// return
+			}
 
-							// Insert in INS Transactions table
-							reqText, err := json.Marshal(tReq)
-							if err != nil {
-								logs.Error("Failed to marshal request text: %v", err)
-								// c.Data["json"] = "Invalid request format"
-								// c.ServeJSON()
-								// return
-							}
+			insTransaction := models.Bil_ins_transactions{
+				BilTransactionId:       transaction,
+				Amount:                 req.Amount,
+				Biller:                 biller,
+				SenderAccountNumber:    phoneNumber,
+				RecipientAccountNumber: req.DestinationAccount,
+				Network:                billerCode,
+				Request:                string(reqText),
+				DateCreated:            time.Now(),
+				DateModified:           time.Now(),
+				CreatedBy:              1,
+				ModifiedBy:             1,
+				Active:                 1,
+			}
 
-							insTransaction := models.Bil_ins_transactions{
-								BilTransactionId:       &transaction,
-								Amount:                 req.Amount,
-								Biller:                 biller,
-								SenderAccountNumber:    phoneNumber,
-								RecipientAccountNumber: req.DestinationAccount,
-								Network:                billerCode,
-								Request:                string(reqText),
-								DateCreated:            time.Now(),
-								DateModified:           time.Now(),
-								CreatedBy:              1,
-								ModifiedBy:             1,
-								Active:                 1,
-							}
+			if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
+				logs.Error("Failed to create INS transaction record: %v", err)
+				responseCode = false
+				responseMessage = "Failed to create INS transaction record"
+				// resp := responses.ThirdPartyBillPaymentApiResponse{
+				// 	StatusCode:    responseCode,
+				// 	StatusMessage: responseMessage,
+				// 	Result:        nil,
+				// }
+				// c.Data["json"] = resp
+				// c.ServeJSON()
+				// return
+			}
+			logs.Info("Processing bill payment with third-party service: ", tReq)
+			if thirdPartyResponse, err := thirdparty.ProcessBillPayment(&c.Controller, tReq); err == nil {
 
-							if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
-								logs.Error("Failed to create INS transaction record: %v", err)
-								responseCode = false
-								responseMessage = "Failed to create INS transaction record"
-								// resp := responses.ThirdPartyBillPaymentApiResponse{
-								// 	StatusCode:    responseCode,
-								// 	StatusMessage: responseMessage,
-								// 	Result:        nil,
-								// }
-								// c.Data["json"] = resp
-								// c.ServeJSON()
-								// return
-							}
-							logs.Info("Processing bill payment with third-party service: ", tReq)
-							if thirdPartyResponse, err := thirdparty.ProcessBillPayment(&c.Controller, tReq); err == nil {
-
-								if thirdPartyResponse.ResponseCode == "0001" {
-									// Transaction is pending
-									// Update the transaction status to pending
-									responseCode = true
-									responseMessage = "Request is being processed"
-									if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "PENDING:: Failed to update transaction status"
-										} else {
-											responseCode = true
-											responseMessage = "Request is being processed"
-										}
-									} else {
-										logs.Error("Failed to get status for pending transaction: %v", err)
-										responseCode = false
-										responseMessage = "PENDING: Failed to get status for pending transaction"
-									}
-								} else if thirdPartyResponse.ResponseCode == "0000" {
-									// Transaction is successful
-									// Update the transaction status to successful
-									responseCode = true
-									responseMessage = "Request is successful"
-									if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "SUCCESS:: Failed to update transaction status"
-										} else {
-											// Prepare the response
-											logs.Info("Transaction successful: ", transaction)
-											responseCode = true
-											responseMessage = "Transaction successful"
-										}
-									} else {
-										logs.Error("Failed to get status for successful transaction: %v", err)
-										responseCode = false
-										responseMessage = "SUCCESS:: Failed to get status for successful transaction"
-									}
-								} else {
-									// Transaction failed
-									// Update the transaction status to failed
-									responseCode = false
-									responseMessage = "Transaction failed"
-									if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "FAILED:: Failed to update transaction status"
-										}
-									} else {
-										logs.Error("Failed to get status for failed transaction: %v", err)
-										responseCode = false
-										responseMessage = "FAILED:: Failed to get status for failed transaction"
-									}
-								}
-
-								resText, err := json.Marshal(thirdPartyResponse)
-								if err != nil {
-									logs.Error("Failed to marshal response text: %v", err)
-									// c.Data["json"] = "Invalid request format"
-									// c.ServeJSON()
-									// return
-								}
-								v.RequestResponse = string(resText)
-								v.DateModified = time.Now()
-								if err := models.UpdateRequestById(&v); err != nil {
-									logs.Error("Failed to update request response: %v", err)
-									responseCode = true
-									responseMessage = "Success response:: Failed to update request response"
-								} else {
-									logs.Info("Request response updated successfully")
-								}
-
-								c.Ctx.Output.SetStatus(200)
-								// Prepare the response
-
-								// Create the response object
-								respData := responses.ThirdPartyBillPaymentDataApiResponse{
-									Description:   "Payment for " + billerCode + " bill",
-									Amount:        req.Amount,
-									TransactionId: transaction.TransactionRefNumber,
-								}
-								response := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        &respData,
-								}
-								c.Data["json"] = response
-							} else {
-								logs.Error("Failed to process "+billerCode+" request: %v", err)
-								responseCode = false
-								responseMessage = "Failed to process " + billerCode + " request"
-								resp := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        nil,
-								}
-								c.Data["json"] = resp
-							}
-						} else {
-							logs.Error("Failed to get biller by code: %v", err)
+				if thirdPartyResponse.ResponseCode == "0001" {
+					// Transaction is pending
+					// Update the transaction status to pending
+					responseCode = true
+					responseMessage = "Request is being processed"
+					if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
 							responseCode = false
-							responseMessage = "Failed to get biller by code"
-							resp := responses.ThirdPartyBillPaymentApiResponse{
-								StatusCode:    responseCode,
-								StatusMessage: responseMessage,
-								Result:        nil,
-							}
-							c.Data["json"] = resp
+							responseMessage = "PENDING:: Failed to update transaction status"
+						} else {
+							responseCode = true
+							responseMessage = "Request is being processed"
 						}
-
 					} else {
-						logs.Error("Failed to create transaction record: %v", err)
+						logs.Error("Failed to get status for pending transaction: %v", err)
 						responseCode = false
-						responseMessage = "Failed to create transaction record"
-						resp := responses.ThirdPartyBillPaymentApiResponse{
-							StatusCode:    responseCode,
-							StatusMessage: responseMessage,
-							Result:        nil,
+						responseMessage = "PENDING: Failed to get status for pending transaction"
+					}
+				} else if thirdPartyResponse.ResponseCode == "0000" {
+					// Transaction is successful
+					// Update the transaction status to successful
+					responseCode = true
+					responseMessage = "Request is successful"
+					if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "SUCCESS:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							logs.Info("Transaction successful: ", transaction)
+							responseCode = true
+							responseMessage = "Transaction successful"
 						}
-						c.Data["json"] = resp
+					} else {
+						logs.Error("Failed to get status for successful transaction: %v", err)
+						responseCode = false
+						responseMessage = "SUCCESS:: Failed to get status for successful transaction"
 					}
 				} else {
-					logs.Error("Failed to create request record: %v", err)
+					// Transaction failed
+					// Update the transaction status to failed
 					responseCode = false
-					responseMessage = "Failed to create request log"
-					resp := responses.ThirdPartyBillPaymentApiResponse{
-						StatusCode:    responseCode,
-						StatusMessage: responseMessage,
-						Result:        nil,
+					responseMessage = "Transaction failed"
+					if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "FAILED:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							logs.Info("Transaction failed: ", transaction)
+							responseCode = true
+							responseMessage = "Transaction failed"
+						}
+					} else {
+						logs.Error("Failed to get status for failed transaction: %v", err)
+						responseCode = false
+						responseMessage = "FAILED:: Failed to get status for failed transaction"
 					}
-					c.Data["json"] = resp
 				}
-			} else {
-				logs.Error("Service not found: %v", err)
-				responseCode = false
-				responseMessage = "Failed to create transaction record. Service not found."
-				resp := responses.ThirdPartyBillPaymentApiResponse{
+
+				resText, err := json.Marshal(thirdPartyResponse)
+				if err != nil {
+					logs.Error("Failed to marshal response text: %v", err)
+					// c.Data["json"] = "Invalid request format"
+					// c.ServeJSON()
+					// return
+				}
+
+				if v, err := models.GetRequestById(transaction.Request.RequestId); err == nil {
+					v.RequestResponse = string(resText)
+					v.DateModified = time.Now()
+					if err := models.UpdateRequestById(v); err != nil {
+						logs.Error("Failed to update request response: %v", err)
+						responseCode = true
+						responseMessage = "Success response:: Failed to update request response"
+					} else {
+						logs.Info("Request response updated successfully")
+					}
+				} else {
+					logs.Error("Failed to get request by ID: %v", err)
+				}
+
+				c.Ctx.Output.SetStatus(200)
+				// Prepare the response
+
+				// Create the response object
+				respData := responses.ThirdPartyBillPaymentDataApiResponse{
+					Description:   "Payment for " + billerCode + " bill",
+					Amount:        req.Amount,
+					TransactionId: transaction.TransactionRefNumber,
+				}
+				response := responses.ThirdPartyBillPaymentApiResponse{
 					StatusCode:    responseCode,
 					StatusMessage: responseMessage,
-					Result:        nil,
+					Result:        &respData,
 				}
-				c.Data["json"] = resp
+				c.Data["json"] = response
+			} else {
+				logs.Error("Failed to process "+billerCode+" request: %v", err)
+				responseCode = false
+				responseMessage = "Failed to process " + billerCode + " request"
 			}
 		} else {
-			logs.Error("Customer not found: %v", err)
+			logs.Error("Failed to get biller by code: %v", err)
 			responseCode = false
-			responseMessage = "Failed to create transaction record"
-			resp := responses.ThirdPartyBillPaymentApiResponse{
-				StatusCode:    responseCode,
-				StatusMessage: responseMessage,
-				Result:        nil,
-			}
-			c.Data["json"] = resp
+			responseMessage = "Failed to get biller by code"
 		}
+
 	} else {
-		logs.Error("Status not found: %v", err)
+		logs.Error("Failed to get transaction by ID: %v", err)
 		responseCode = false
-		responseMessage = "Failed to create transaction record"
-		resp := responses.ThirdPartyBillPaymentApiResponse{
-			StatusCode:    responseCode,
-			StatusMessage: responseMessage,
-			Result:        nil,
-		}
-		c.Data["json"] = resp
+		responseMessage = "Failed to get transaction by ID"
 	}
+
+	resp := responses.ThirdPartyBillPaymentApiResponse{
+		StatusCode:    responseCode,
+		StatusMessage: responseMessage,
+		Result:        nil,
+	}
+	c.Data["json"] = resp
 	c.ServeJSON()
 }
 
@@ -1432,300 +1128,206 @@ func (c *RequestController) PayGoTVBill() {
 
 	// authorization := ctx.Input.Header("Authorization")
 	phoneNumber := c.Ctx.Input.Header("PhoneNumber")
-	sourceSystem := c.Ctx.Input.Header("SourceSystem")
+	// sourceSystem := c.Ctx.Input.Header("SourceSystem")
 
 	responseCode := false
 	responseMessage := "Request not processed"
 
-	statusCode := "PENDING" // Assuming 5002 is the status code for "Request Pending"
+	if transaction, err := models.GetBil_transactionsById(req.TransactionId); err == nil {
+		// Go to fulfillment
+		// Formulate the request to send to the third-party service
+		selectedPackage := requests.BillPaymentKeyRequest{
+			Bundle: req.PackageType,
+		}
 
-	reqText, err := json.Marshal(req)
-	if err != nil {
-		c.Data["json"] = "Invalid request format"
-		c.ServeJSON()
-		return
-	}
+		callbackurl := ""
+		if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
+			callbackurl = cbr.PropertyValue
+		} else {
+			logs.Error("Failed to get callback URL: %v", err)
+		}
 
-	status, err := models.GetStatus_codesByCode(statusCode)
-	if err == nil {
-		// Get customer by ID
-		if cust, err := models.GetCustomerByPhoneNumber(phoneNumber); err == nil {
-			// Restructure the request to match the model
-			serviceCode := "BILL_PAYMENT"
-			if service, err := models.GetServicesByCode(serviceCode); err == nil {
-				v := models.Request{
-					ApiRequestId:    req.RequestId,
-					CustId:          cust,
-					Request:         string(reqText),
-					RequestType:     service.ServiceName,
-					RequestStatus:   status.StatusDescription,
-					RequestAmount:   req.Amount,
-					RequestResponse: "",
-					RequestDate:     time.Now(),
-					DateCreated:     time.Now(),
-					DateModified:    time.Now(),
-				}
-				if _, err := models.AddRequest(&v); err == nil {
-					// Create a transaction record
-					transaction := models.Bil_transactions{
-						TransactionRefNumber: "TRX-" + strconv.FormatInt(time.Now().Unix(), 10) + strconv.FormatInt(v.RequestId, 10),
-						Service:              service, // Assuming service ID is 1 for airtime
-						Request:              &v,
-						TransactionBy:        cust,
-						Amount:               req.Amount,
-						TransactingCurrency:  "GHC", // Assuming USD for simplicity
-						SourceChannel:        sourceSystem,
-						Source:               phoneNumber,
-						Destination:          req.DestinationAccount,
-						Charge:               0.0,    // Assuming no charge for simplicity
-						Status:               status, // Assuming 1 means successful
-						DateCreated:          time.Now(),
-						DateModified:         time.Now(),
-						CreatedBy:            1,
-						ModifiedBy:           1,
-						Active:               1, // Assuming active status
-					}
-					if _, err := models.AddBil_transactions(&transaction); err == nil {
-						// Go to fulfillment
-						// Formulate the request to send to the third-party service
-						selectedPackage := requests.BillPaymentKeyRequest{
-							Bundle: req.PackageType,
-						}
+		billerCode := "GOTV"
+		biller, err := models.GetBillerByCode(billerCode)
 
-						callbackurl := ""
-						if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
-							callbackurl = cbr.PropertyValue
-						} else {
-							logs.Error("Failed to get callback URL: %v", err)
-						}
+		if err == nil {
+			tReq := requests.BillPaymentThirdPartyRequest{
+				Amount:          req.Amount,
+				Destination:     req.DestinationAccount,
+				ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
+				CallbackUrl:     callbackurl,                      // Optional field for callback URL
+				ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
+				ServiceId:       biller.BillerReferenceId,
+			}
 
-						billerCode := "GOTV"
-						biller, err := models.GetBillerByCode(billerCode)
+			// Call the third-party service to process the request
+			logs.Info("Processing dstv bill payment with third-party service: ", tReq)
 
-						if err == nil {
-							tReq := requests.BillPaymentThirdPartyRequest{
-								Amount:          req.Amount,
-								Destination:     req.DestinationAccount,
-								ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
-								CallbackUrl:     callbackurl,                      // Optional field for callback URL
-								ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
-								ServiceId:       biller.BillerReferenceId,
-							}
+			// Insert in INS Transactions table
+			reqText, err := json.Marshal(tReq)
+			if err != nil {
+				logs.Error("Failed to marshal request text: %v", err)
+				// c.Data["json"] = "Invalid request format"
+				// c.ServeJSON()
+				// return
+			}
 
-							// Call the third-party service to process the request
-							logs.Info("Processing dstv bill payment with third-party service: ", tReq)
+			insTransaction := models.Bil_ins_transactions{
+				BilTransactionId:       transaction,
+				Amount:                 req.Amount,
+				Biller:                 biller,
+				SenderAccountNumber:    phoneNumber,
+				RecipientAccountNumber: req.DestinationAccount,
+				Network:                billerCode,
+				Request:                string(reqText),
+				DateCreated:            time.Now(),
+				DateModified:           time.Now(),
+				CreatedBy:              1,
+				ModifiedBy:             1,
+				Active:                 1,
+			}
 
-							// Insert in INS Transactions table
-							reqText, err := json.Marshal(tReq)
-							if err != nil {
-								logs.Error("Failed to marshal request text: %v", err)
-								// c.Data["json"] = "Invalid request format"
-								// c.ServeJSON()
-								// return
-							}
+			if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
+				logs.Error("Failed to create INS transaction record: %v", err)
+				responseCode = false
+				responseMessage = "Failed to create INS transaction record"
+				// resp := responses.ThirdPartyBillPaymentApiResponse{
+				// 	StatusCode:    responseCode,
+				// 	StatusMessage: responseMessage,
+				// 	Result:        nil,
+				// }
+				// c.Data["json"] = resp
+				// c.ServeJSON()
+				// return
+			}
+			logs.Info("Processing bill payment with third-party service: ", tReq)
+			if thirdPartyResponse, err := thirdparty.ProcessBillPayment(&c.Controller, tReq); err == nil {
 
-							insTransaction := models.Bil_ins_transactions{
-								BilTransactionId:       &transaction,
-								Amount:                 req.Amount,
-								Biller:                 biller,
-								SenderAccountNumber:    phoneNumber,
-								RecipientAccountNumber: req.DestinationAccount,
-								Network:                billerCode,
-								Request:                string(reqText),
-								DateCreated:            time.Now(),
-								DateModified:           time.Now(),
-								CreatedBy:              1,
-								ModifiedBy:             1,
-								Active:                 1,
-							}
-
-							if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
-								logs.Error("Failed to create INS transaction record: %v", err)
-								responseCode = false
-								responseMessage = "Failed to create INS transaction record"
-								// resp := responses.ThirdPartyBillPaymentApiResponse{
-								// 	StatusCode:    responseCode,
-								// 	StatusMessage: responseMessage,
-								// 	Result:        nil,
-								// }
-								// c.Data["json"] = resp
-								// c.ServeJSON()
-								// return
-							}
-							logs.Info("Processing bill payment with third-party service: ", tReq)
-							if thirdPartyResponse, err := thirdparty.ProcessBillPayment(&c.Controller, tReq); err == nil {
-
-								if thirdPartyResponse.ResponseCode == "0001" {
-									// Transaction is pending
-									// Update the transaction status to pending
-									responseCode = true
-									responseMessage = "Request is being processed"
-									if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "PENDING:: Failed to update transaction status"
-										} else {
-											responseCode = true
-											responseMessage = "Request is being processed"
-										}
-									} else {
-										logs.Error("Failed to get status for pending transaction: %v", err)
-										responseCode = false
-										responseMessage = "PENDING: Failed to get status for pending transaction"
-									}
-								} else if thirdPartyResponse.ResponseCode == "0000" {
-									// Transaction is successful
-									// Update the transaction status to successful
-									responseCode = true
-									responseMessage = "Request is successful"
-									if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "SUCCESS:: Failed to update transaction status"
-										} else {
-											// Prepare the response
-											logs.Info("Transaction successful: ", transaction)
-											responseCode = true
-											responseMessage = "Transaction successful"
-										}
-									} else {
-										logs.Error("Failed to get status for successful transaction: %v", err)
-										responseCode = false
-										responseMessage = "SUCCESS:: Failed to get status for successful transaction"
-									}
-								} else {
-									// Transaction failed
-									// Update the transaction status to failed
-									responseCode = false
-									responseMessage = "Transaction failed"
-									if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "FAILED:: Failed to update transaction status"
-										}
-									} else {
-										logs.Error("Failed to get status for failed transaction: %v", err)
-										responseCode = false
-										responseMessage = "FAILED:: Failed to get status for failed transaction"
-									}
-								}
-
-								resText, err := json.Marshal(thirdPartyResponse)
-								if err != nil {
-									logs.Error("Failed to marshal response text: %v", err)
-									// c.Data["json"] = "Invalid request format"
-									// c.ServeJSON()
-									// return
-								}
-								v.RequestResponse = string(resText)
-								v.DateModified = time.Now()
-								if err := models.UpdateRequestById(&v); err != nil {
-									logs.Error("Failed to update request response: %v", err)
-									responseCode = true
-									responseMessage = "Success response:: Failed to update request response"
-								} else {
-									logs.Info("Request response updated successfully")
-								}
-
-								c.Ctx.Output.SetStatus(200)
-								// Prepare the response
-
-								// Create the response object
-								respData := responses.ThirdPartyBillPaymentDataApiResponse{
-									Description:   "Payment for " + billerCode + " bill",
-									Amount:        req.Amount,
-									TransactionId: transaction.TransactionRefNumber,
-								}
-								response := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        &respData,
-								}
-								c.Data["json"] = response
-							} else {
-								logs.Error("Failed to process "+billerCode+" request: %v", err)
-								responseCode = false
-								responseMessage = "Failed to process " + billerCode + " request"
-								resp := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        nil,
-								}
-								c.Data["json"] = resp
-							}
-						} else {
-							logs.Error("Failed to get biller by code: %v", err)
+				if thirdPartyResponse.ResponseCode == "0001" {
+					// Transaction is pending
+					// Update the transaction status to pending
+					responseCode = true
+					responseMessage = "Request is being processed"
+					if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
 							responseCode = false
-							responseMessage = "Failed to get biller by code"
-							resp := responses.ThirdPartyBillPaymentApiResponse{
-								StatusCode:    responseCode,
-								StatusMessage: responseMessage,
-								Result:        nil,
-							}
-							c.Data["json"] = resp
+							responseMessage = "PENDING:: Failed to update transaction status"
+						} else {
+							responseCode = true
+							responseMessage = "Request is being processed"
 						}
-
 					} else {
-						logs.Error("Failed to create transaction record: %v", err)
+						logs.Error("Failed to get status for pending transaction: %v", err)
 						responseCode = false
-						responseMessage = "Failed to create transaction record"
-						resp := responses.ThirdPartyBillPaymentApiResponse{
-							StatusCode:    responseCode,
-							StatusMessage: responseMessage,
-							Result:        nil,
+						responseMessage = "PENDING: Failed to get status for pending transaction"
+					}
+				} else if thirdPartyResponse.ResponseCode == "0000" {
+					// Transaction is successful
+					// Update the transaction status to successful
+					responseCode = true
+					responseMessage = "Request is successful"
+					if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "SUCCESS:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							logs.Info("Transaction successful: ", transaction)
+							responseCode = true
+							responseMessage = "Transaction successful"
 						}
-						c.Data["json"] = resp
+					} else {
+						logs.Error("Failed to get status for successful transaction: %v", err)
+						responseCode = false
+						responseMessage = "SUCCESS:: Failed to get status for successful transaction"
 					}
 				} else {
-					logs.Error("Failed to create request record: %v", err)
+					// Transaction failed
+					// Update the transaction status to failed
 					responseCode = false
-					responseMessage = "Failed to create request log"
-					resp := responses.ThirdPartyBillPaymentApiResponse{
-						StatusCode:    responseCode,
-						StatusMessage: responseMessage,
-						Result:        nil,
+					responseMessage = "Transaction failed"
+					if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "FAILED:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							responseCode = true
+							responseMessage = "Transaction failed"
+						}
+					} else {
+						logs.Error("Failed to get status for failed transaction: %v", err)
+						responseCode = false
+						responseMessage = "FAILED:: Failed to get status for failed transaction"
 					}
-					c.Data["json"] = resp
 				}
-			} else {
-				logs.Error("Service not found: %v", err)
-				responseCode = false
-				responseMessage = "Failed to create transaction record. Service not found."
-				resp := responses.ThirdPartyBillPaymentApiResponse{
+
+				resText, err := json.Marshal(thirdPartyResponse)
+				if err != nil {
+					logs.Error("Failed to marshal response text: %v", err)
+					// c.Data["json"] = "Invalid request format"
+					// c.ServeJSON()
+					// return
+				}
+
+				if v, err := models.GetRequestById(transaction.Request.RequestId); err == nil {
+					v.RequestResponse = string(resText)
+					v.DateModified = time.Now()
+					if err := models.UpdateRequestById(v); err != nil {
+						logs.Error("Failed to update request response: %v", err)
+						responseCode = true
+						responseMessage = "Success response:: Failed to update request response"
+					} else {
+						logs.Info("Request response updated successfully")
+					}
+				} else {
+					logs.Error("Failed to get request by ID: %v", err)
+				}
+
+				c.Ctx.Output.SetStatus(200)
+				// Prepare the response
+
+				// Create the response object
+				respData := responses.ThirdPartyBillPaymentDataApiResponse{
+					Description:   "Payment for " + billerCode + " bill",
+					Amount:        req.Amount,
+					TransactionId: transaction.TransactionRefNumber,
+				}
+				response := responses.ThirdPartyBillPaymentApiResponse{
 					StatusCode:    responseCode,
 					StatusMessage: responseMessage,
-					Result:        nil,
+					Result:        &respData,
 				}
-				c.Data["json"] = resp
+				c.Data["json"] = response
+			} else {
+				logs.Error("Failed to process "+billerCode+" request: %v", err)
+				responseCode = false
+				responseMessage = "Failed to process " + billerCode + " request"
 			}
 		} else {
-			logs.Error("Customer not found: %v", err)
+			logs.Error("Failed to get biller by code: %v", err)
 			responseCode = false
-			responseMessage = "Failed to create transaction record"
-			resp := responses.ThirdPartyBillPaymentApiResponse{
-				StatusCode:    responseCode,
-				StatusMessage: responseMessage,
-				Result:        nil,
-			}
-			c.Data["json"] = resp
+			responseMessage = "Failed to get biller by code"
 		}
+
 	} else {
-		logs.Error("Status not found: %v", err)
+		logs.Error("Failed to get transaction by ID: %v", err)
 		responseCode = false
-		responseMessage = "Failed to create transaction record"
-		resp := responses.ThirdPartyBillPaymentApiResponse{
-			StatusCode:    responseCode,
-			StatusMessage: responseMessage,
-			Result:        nil,
-		}
-		c.Data["json"] = resp
+		responseMessage = "Failed to get transaction by ID"
 	}
+
+	response := responses.ThirdPartyBillPaymentApiResponse{
+		StatusCode:    responseCode,
+		StatusMessage: responseMessage,
+		Result:        nil,
+	}
+	c.Data["json"] = response
 	c.ServeJSON()
 }
 
@@ -1745,276 +1347,191 @@ func (c *RequestController) PayWaterBill() {
 
 	// authorization := ctx.Input.Header("Authorization")
 	phoneNumber := c.Ctx.Input.Header("PhoneNumber")
-	sourceSystem := c.Ctx.Input.Header("SourceSystem")
+	// sourceSystem := c.Ctx.Input.Header("SourceSystem")
 
 	responseCode := false
 	responseMessage := "Request not processed"
 
-	statusCode := "PENDING" // Assuming 5002 is the status code for "Request Pending"
+	if transaction, err := models.GetBil_transactionsById(req.TransactionId); err == nil {
+		// Go to fulfillment
+		// Formulate the request to send to the third-party service
+		selectedPackage := requests.GhanaWaterBillPaymentKeyRequest{
+			Bundle:    req.Bundle,
+			SessionId: req.SessionId, // Assuming this is the session ID for the request
+			Email:     req.Email,     // Assuming this is the email for the request
+		}
 
-	reqText, err := json.Marshal(req)
-	if err != nil {
-		c.Data["json"] = "Invalid request format"
-		c.ServeJSON()
-		return
-	}
+		callbackurl := ""
+		if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
+			callbackurl = cbr.PropertyValue
+		} else {
+			logs.Error("Failed to get callback URL: %v", err)
+		}
 
-	status, err := models.GetStatus_codesByCode(statusCode)
-	if err == nil {
-		// Get customer by ID
-		if cust, err := models.GetCustomerByPhoneNumber(phoneNumber); err == nil {
-			// Restructure the request to match the model
-			serviceCode := "BILL_PAYMENT"
-			if service, err := models.GetServicesByCode(serviceCode); err == nil {
-				v := models.Request{
-					ApiRequestId:    req.RequestId,
-					CustId:          cust,
-					Request:         string(reqText),
-					RequestType:     service.ServiceName,
-					RequestStatus:   status.StatusDescription,
-					RequestAmount:   req.Amount,
-					RequestResponse: "",
-					RequestDate:     time.Now(),
-					DateCreated:     time.Now(),
-					DateModified:    time.Now(),
-				}
-				if _, err := models.AddRequest(&v); err == nil {
-					// Create a transaction record
-					transaction := models.Bil_transactions{
-						TransactionRefNumber: "TRX-" + strconv.FormatInt(time.Now().Unix(), 10) + strconv.FormatInt(v.RequestId, 10),
-						Service:              service, // Assuming service ID is 1 for airtime
-						Request:              &v,
-						TransactionBy:        cust,
-						Amount:               req.Amount,
-						TransactingCurrency:  "GHC", // Assuming USD for simplicity
-						SourceChannel:        sourceSystem,
-						Source:               phoneNumber,
-						Destination:          req.DestinationAccount,
-						Charge:               0.0,    // Assuming no charge for simplicity
-						Status:               status, // Assuming 1 means successful
-						ExtraDetails1:        req.SessionId,
-						ExtraDetails2:        req.PhoneNumber,
-						ExtraDetails3:        req.Email,
-						DateCreated:          time.Now(),
-						DateModified:         time.Now(),
-						CreatedBy:            1,
-						ModifiedBy:           1,
-						Active:               1, // Assuming active status
-					}
-					if _, err := models.AddBil_transactions(&transaction); err == nil {
-						// Go to fulfillment
-						// Formulate the request to send to the third-party service
-						selectedPackage := requests.GhanaWaterBillPaymentKeyRequest{
-							Bundle:    req.Bundle,
-							SessionId: req.SessionId, // Assuming this is the session ID for the request
-							Email:     req.Email,     // Assuming this is the email for the request
-						}
+		billerCode := "GH_WATER"
+		biller, err := models.GetBillerByCode(billerCode)
 
-						callbackurl := ""
-						if cbr, err := models.GetApplication_propertyByCode("BILL_PAYMENT_CALLBACK_URL"); err == nil {
-							callbackurl = cbr.PropertyValue
-						} else {
-							logs.Error("Failed to get callback URL: %v", err)
-						}
+		if err == nil {
+			tReq := requests.GhanaWaterBillPaymentThirdPartyRequest{
+				Amount:          req.Amount,
+				Destination:     req.DestinationAccount,
+				ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
+				CallbackUrl:     callbackurl,                      // Optional field for callback URL
+				ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
+				ServiceId:       biller.BillerReferenceId,
+			}
 
-						billerCode := "GH_WATER"
-						biller, err := models.GetBillerByCode(billerCode)
+			// Call the third-party service to process the request
+			logs.Info("Processing dstv bill payment with third-party service: ", tReq)
 
-						if err == nil {
-							tReq := requests.GhanaWaterBillPaymentThirdPartyRequest{
-								Amount:          req.Amount,
-								Destination:     req.DestinationAccount,
-								ClientReference: transaction.TransactionRefNumber, // Use the request ID as the transaction ID
-								CallbackUrl:     callbackurl,                      // Optional field for callback URL
-								ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
-								ServiceId:       biller.BillerReferenceId,
-							}
+			// Insert in INS Transactions table
+			reqText, err := json.Marshal(tReq)
+			if err != nil {
+				logs.Error("Failed to marshal request text: %v", err)
+				// c.Data["json"] = "Invalid request format"
+				// c.ServeJSON()
+				// return
+			}
 
-							// Call the third-party service to process the request
-							logs.Info("Processing dstv bill payment with third-party service: ", tReq)
+			insTransaction := models.Bil_ins_transactions{
+				BilTransactionId:       transaction,
+				Amount:                 req.Amount,
+				Biller:                 biller,
+				SenderAccountNumber:    phoneNumber,
+				RecipientAccountNumber: req.DestinationAccount,
+				TransactionType:        "PAYMENT",
+				Network:                billerCode,
+				Request:                string(reqText),
+				DateCreated:            time.Now(),
+				DateModified:           time.Now(),
+				CreatedBy:              1,
+				ModifiedBy:             1,
+				Active:                 1,
+			}
 
-							// Insert in INS Transactions table
-							reqText, err := json.Marshal(tReq)
-							if err != nil {
-								logs.Error("Failed to marshal request text: %v", err)
-								// c.Data["json"] = "Invalid request format"
-								// c.ServeJSON()
-								// return
-							}
+			if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
+				logs.Error("Failed to create INS transaction record: %v", err)
+				responseCode = false
+				responseMessage = "Failed to create INS transaction record"
+				// resp := responses.ThirdPartyBillPaymentApiResponse{
+				// 	StatusCode:    responseCode,
+				// 	StatusMessage: responseMessage,
+				// 	Result:        nil,
+				// }
+				// c.Data["json"] = resp
+				// c.ServeJSON()
+				// return
+			}
+			logs.Info("Processing bill payment with third-party service: ", tReq)
+			if thirdPartyResponse, err := thirdparty.ProcessGhanaWaterBillPayment(&c.Controller, tReq); err == nil {
 
-							insTransaction := models.Bil_ins_transactions{
-								BilTransactionId:       &transaction,
-								Amount:                 req.Amount,
-								Biller:                 biller,
-								SenderAccountNumber:    phoneNumber,
-								RecipientAccountNumber: req.DestinationAccount,
-								Network:                billerCode,
-								Request:                string(reqText),
-								DateCreated:            time.Now(),
-								DateModified:           time.Now(),
-								CreatedBy:              1,
-								ModifiedBy:             1,
-								Active:                 1,
-							}
-
-							if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
-								logs.Error("Failed to create INS transaction record: %v", err)
-								responseCode = false
-								responseMessage = "Failed to create INS transaction record"
-								// resp := responses.ThirdPartyBillPaymentApiResponse{
-								// 	StatusCode:    responseCode,
-								// 	StatusMessage: responseMessage,
-								// 	Result:        nil,
-								// }
-								// c.Data["json"] = resp
-								// c.ServeJSON()
-								// return
-							}
-							logs.Info("Processing bill payment with third-party service: ", tReq)
-							if thirdPartyResponse, err := thirdparty.ProcessGhanaWaterBillPayment(&c.Controller, tReq); err == nil {
-
-								if thirdPartyResponse.ResponseCode == "0001" {
-									// Transaction is pending
-									// Update the transaction status to pending
-									responseCode = true
-									responseMessage = "Request is being processed"
-									if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "PENDING:: Failed to update transaction status"
-										} else {
-											responseCode = true
-											responseMessage = "Request is being processed"
-										}
-									} else {
-										logs.Error("Failed to get status for pending transaction: %v", err)
-										responseCode = false
-										responseMessage = "PENDING: Failed to get status for pending transaction"
-									}
-								} else if thirdPartyResponse.ResponseCode == "0000" {
-									// Transaction is successful
-									// Update the transaction status to successful
-									responseCode = true
-									responseMessage = "Request is successful"
-									if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "SUCCESS:: Failed to update transaction status"
-										} else {
-											// Prepare the response
-											logs.Info("Transaction successful: ", transaction)
-											responseCode = true
-											responseMessage = "Transaction successful"
-										}
-									} else {
-										logs.Error("Failed to get status for successful transaction: %v", err)
-										responseCode = false
-										responseMessage = "SUCCESS:: Failed to get status for successful transaction"
-									}
-								} else {
-									// Transaction failed
-									// Update the transaction status to failed
-									responseCode = false
-									responseMessage = "Transaction failed"
-									if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
-										transaction.Status = status
-										if err := models.UpdateBil_transactionsById(&transaction); err != nil {
-											logs.Error("Failed to update transaction status: %v", err)
-											responseCode = false
-											responseMessage = "FAILED:: Failed to update transaction status"
-										}
-									} else {
-										logs.Error("Failed to get status for failed transaction: %v", err)
-										responseCode = false
-										responseMessage = "FAILED:: Failed to get status for failed transaction"
-									}
-								}
-
-								resText, err := json.Marshal(thirdPartyResponse)
-								if err != nil {
-									logs.Error("Failed to marshal response text: %v", err)
-									// c.Data["json"] = "Invalid request format"
-									// c.ServeJSON()
-									// return
-								}
-								v.RequestResponse = string(resText)
-								v.DateModified = time.Now()
-								if err := models.UpdateRequestById(&v); err != nil {
-									logs.Error("Failed to update request response: %v", err)
-									responseCode = true
-									responseMessage = "Success response:: Failed to update request response"
-								} else {
-									logs.Info("Request response updated successfully")
-								}
-
-								c.Ctx.Output.SetStatus(200)
-								// Prepare the response
-
-								// Create the response object
-								respData := responses.ThirdPartyBillPaymentDataApiResponse{
-									Description:   "Payment for " + billerCode + " bill",
-									Amount:        req.Amount,
-									TransactionId: transaction.TransactionRefNumber,
-								}
-								response := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        &respData,
-								}
-								c.Data["json"] = response
-							} else {
-								logs.Error("Failed to process "+billerCode+" request: %v", err)
-								responseCode = false
-								responseMessage = "Failed to process " + billerCode + " request"
-								resp := responses.ThirdPartyBillPaymentApiResponse{
-									StatusCode:    responseCode,
-									StatusMessage: responseMessage,
-									Result:        nil,
-								}
-								c.Data["json"] = resp
-							}
-						} else {
-							logs.Error("Failed to get biller by code: %v", err)
+				if thirdPartyResponse.ResponseCode == "0001" {
+					// Transaction is pending
+					// Update the transaction status to pending
+					responseCode = true
+					responseMessage = "Request is being processed"
+					if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
 							responseCode = false
-							responseMessage = "Failed to get biller by code"
-							resp := responses.ThirdPartyBillPaymentApiResponse{
-								StatusCode:    responseCode,
-								StatusMessage: responseMessage,
-								Result:        nil,
-							}
-							c.Data["json"] = resp
+							responseMessage = "PENDING:: Failed to update transaction status"
+						} else {
+							responseCode = true
+							responseMessage = "Request is being processed"
 						}
-
 					} else {
-						logs.Error("Failed to create transaction record: %v", err)
+						logs.Error("Failed to get status for pending transaction: %v", err)
 						responseCode = false
-						responseMessage = "Failed to create transaction record"
-						resp := responses.ThirdPartyBillPaymentApiResponse{
-							StatusCode:    responseCode,
-							StatusMessage: responseMessage,
-							Result:        nil,
+						responseMessage = "PENDING: Failed to get status for pending transaction"
+					}
+				} else if thirdPartyResponse.ResponseCode == "0000" {
+					// Transaction is successful
+					// Update the transaction status to successful
+					responseCode = true
+					responseMessage = "Request is successful"
+					if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "SUCCESS:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							logs.Info("Transaction successful: ", transaction)
+							responseCode = true
+							responseMessage = "Transaction successful"
 						}
-						c.Data["json"] = resp
+					} else {
+						logs.Error("Failed to get status for successful transaction: %v", err)
+						responseCode = false
+						responseMessage = "SUCCESS:: Failed to get status for successful transaction"
 					}
 				} else {
-					logs.Error("Failed to create request record: %v", err)
+					// Transaction failed
+					// Update the transaction status to failed
 					responseCode = false
-					responseMessage = "Failed to create request log"
-					resp := responses.ThirdPartyBillPaymentApiResponse{
-						StatusCode:    responseCode,
-						StatusMessage: responseMessage,
-						Result:        nil,
+					responseMessage = "Transaction failed"
+					if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
+						transaction.Status = status
+						if err := models.UpdateBil_transactionsById(transaction); err != nil {
+							logs.Error("Failed to update transaction status: %v", err)
+							responseCode = false
+							responseMessage = "FAILED:: Failed to update transaction status"
+						} else {
+							// Prepare the response
+							responseCode = true
+							responseMessage = "Transaction failed"
+						}
+					} else {
+						logs.Error("Failed to get status for failed transaction: %v", err)
+						responseCode = false
+						responseMessage = "FAILED:: Failed to get status for failed transaction"
 					}
-					c.Data["json"] = resp
 				}
+
+				resText, err := json.Marshal(thirdPartyResponse)
+				if err != nil {
+					logs.Error("Failed to marshal response text: %v", err)
+					// c.Data["json"] = "Invalid request format"
+					// c.ServeJSON()
+					// return
+				}
+
+				v, err := models.GetRequestById(transaction.Request.RequestId)
+				if err != nil {
+					logs.Error("Failed to get request by ID: %v", err)
+				} else {
+					v.RequestResponse = string(resText)
+					v.DateModified = time.Now()
+					if err := models.UpdateRequestById(v); err != nil {
+						logs.Error("Failed to update request response: %v", err)
+						responseCode = true
+						responseMessage = "Success response:: Failed to update request response"
+					} else {
+						logs.Info("Request response updated successfully")
+					}
+				}
+
+				c.Ctx.Output.SetStatus(200)
+				// Prepare the response
+
+				// Create the response object
+				respData := responses.ThirdPartyBillPaymentDataApiResponse{
+					Description:   "Payment for " + billerCode + " bill",
+					Amount:        req.Amount,
+					TransactionId: transaction.TransactionRefNumber,
+				}
+				response := responses.ThirdPartyBillPaymentApiResponse{
+					StatusCode:    responseCode,
+					StatusMessage: responseMessage,
+					Result:        &respData,
+				}
+				c.Data["json"] = response
 			} else {
-				logs.Error("Service not found: %v", err)
+				logs.Error("Failed to process "+billerCode+" request: %v", err)
 				responseCode = false
-				responseMessage = "Failed to create transaction record. Service not found."
+				responseMessage = "Failed to process " + billerCode + " request"
 				resp := responses.ThirdPartyBillPaymentApiResponse{
 					StatusCode:    responseCode,
 					StatusMessage: responseMessage,
@@ -2023,9 +1540,9 @@ func (c *RequestController) PayWaterBill() {
 				c.Data["json"] = resp
 			}
 		} else {
-			logs.Error("Customer not found: %v", err)
+			logs.Error("Failed to get biller by code: %v", err)
 			responseCode = false
-			responseMessage = "Failed to create transaction record"
+			responseMessage = "Failed to get biller by code"
 			resp := responses.ThirdPartyBillPaymentApiResponse{
 				StatusCode:    responseCode,
 				StatusMessage: responseMessage,
@@ -2034,7 +1551,7 @@ func (c *RequestController) PayWaterBill() {
 			c.Data["json"] = resp
 		}
 	} else {
-		logs.Error("Status not found: %v", err)
+		logs.Error("Failed to create transaction record: %v", err)
 		responseCode = false
 		responseMessage = "Failed to create transaction record"
 		resp := responses.ThirdPartyBillPaymentApiResponse{
@@ -2044,6 +1561,7 @@ func (c *RequestController) PayWaterBill() {
 		}
 		c.Data["json"] = resp
 	}
+
 	c.ServeJSON()
 }
 
