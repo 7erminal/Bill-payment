@@ -7,14 +7,14 @@ type DSTVQueryRequest struct {
 
 type DSTVPaymentRequest struct {
 	DestinationAccount string
-	TransactionId      int64
+	TransactionId      string
 	Amount             float64
 	PackageType        string
 }
 
 type GOTVPaymentRequest struct {
 	DestinationAccount string
-	TransactionId      int64
+	TransactionId      string
 	Amount             float64
 	PackageType        string
 }
