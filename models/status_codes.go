@@ -12,7 +12,6 @@ import (
 
 type Status_codes struct {
 	StatusId          int64  `orm:"auto"`
-	Status            string `orm:"size(128)"`
 	StatusCode        string `orm:"size(50)"`
 	StatusDescription string `orm:"size(255)"`
 	Active            int
