@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -63,11 +62,11 @@ func (c *RequestController) PayDSTVBill() {
 		TransactionId: "",
 	}
 
-	transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
-	if err != nil {
-		logs.Error("Failed to parse TransactionId: %v", err)
-	}
-	if transaction, err := models.GetBil_transactionsById(transactionInt); err == nil {
+	// transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
+	// if err != nil {
+	// 	logs.Error("Failed to parse TransactionId: %v", err)
+	// }
+	if transaction, err := models.GetBil_transactionsByTransactionRefNum(req.TransactionId); err == nil {
 		// Go to fulfillment
 		// Formulate the request to send to the third-party service
 		selectedPackage := requests.ThirdPartyDSTVReqExtraData{
@@ -723,11 +722,11 @@ func (c *RequestController) PayECGBill() {
 	responseMessage := "Request not processed"
 	bilRespData := responses.BilTransactionsData{}
 
-	transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
-	if err != nil {
-		logs.Error("Failed to parse TransactionId: %v", err)
-	}
-	if transaction, err := models.GetBil_transactionsById(transactionInt); err == nil {
+	// transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
+	// if err != nil {
+	// 	logs.Error("Failed to parse TransactionId: %v", err)
+	// }
+	if transaction, err := models.GetBil_transactionsByTransactionRefNum(req.TransactionId); err == nil {
 		// Go to fulfillment
 		// Formulate the request to send to the third-party service
 		selectedPackage := requests.BillPaymentKeyRequest{
@@ -968,11 +967,11 @@ func (c *RequestController) PayStartimesBill() {
 
 	// statusCode := "PENDING" // Assuming 5002 is the status code for "Request Pending"
 
-	transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
-	if err != nil {
-		logs.Error("Failed to parse TransactionId: %v", err)
-	}
-	if transaction, err := models.GetBil_transactionsById(transactionInt); err == nil {
+	// transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
+	// if err != nil {
+	// 	logs.Error("Failed to parse TransactionId: %v", err)
+	// }
+	if transaction, err := models.GetBil_transactionsByTransactionRefNum(req.TransactionId); err == nil {
 		// Go to fulfillment
 		// Formulate the request to send to the third-party service
 		selectedPackage := requests.BillPaymentKeyRequest{
@@ -1186,11 +1185,11 @@ func (c *RequestController) PayGoTVBill() {
 	responseMessage := "Request not processed"
 	result := responses.BilTransactionsData{}
 
-	transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
-	if err != nil {
-		logs.Error("Failed to parse TransactionId: %v", err)
-	}
-	if transaction, err := models.GetBil_transactionsById(transactionInt); err == nil {
+	// transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
+	// if err != nil {
+	// 	logs.Error("Failed to parse TransactionId: %v", err)
+	// }
+	if transaction, err := models.GetBil_transactionsByTransactionRefNum(req.TransactionId); err == nil {
 		// Go to fulfillment
 		// Formulate the request to send to the third-party service
 		selectedPackage := requests.BillPaymentKeyRequest{
@@ -1408,11 +1407,11 @@ func (c *RequestController) PayWaterBill() {
 	responseCode := "501"
 	responseMessage := "Request not processed"
 	result := responses.BilTransactionsData{}
-	transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
-	if err != nil {
-		logs.Error("Failed to parse TransactionId: %v", err)
-	}
-	if transaction, err := models.GetBil_transactionsById(transactionInt); err == nil {
+	// transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
+	// if err != nil {
+	// 	logs.Error("Failed to parse TransactionId: %v", err)
+	// }
+	if transaction, err := models.GetBil_transactionsByTransactionRefNum(req.TransactionId); err == nil {
 		// Go to fulfillment
 		// Formulate the request to send to the third-party service
 		selectedPackage := requests.GhanaWaterBillPaymentKeyRequest{
