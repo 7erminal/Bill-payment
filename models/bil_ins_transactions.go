@@ -15,15 +15,16 @@ type Bil_ins_transactions struct {
 	BilInsTransactionId    int64             `orm:"auto"`
 	BilTransactionId       *Bil_transactions `orm:"rel(fk);column(bil_transaction_id)"`
 	Amount                 float64
-	Biller                 *Billers  `orm:"rel(fk);column(biller_id)"`
-	SenderAccountNumber    string    `orm:"size(255)"`
-	RecipientAccountNumber string    `orm:"size(255)"`
-	TransactionType        string    `orm:"size(150)"`
-	Network                string    `orm:"size(150)"`
-	Request                string    `orm:"size(255)"`
-	Response               string    `orm:"size(255)"`
-	DateCreated            time.Time `orm:"type(datetime)"`
-	DateModified           time.Time `orm:"type(datetime)"`
+	Biller                 *Billers      `orm:"rel(fk);column(biller_id)"`
+	SenderAccountNumber    string        `orm:"size(255)"`
+	RecipientAccountNumber string        `orm:"size(255)"`
+	TransactionType        string        `orm:"size(150)"`
+	Status                 *Status_codes `orm:"rel(fk);column(status)"`
+	Network                string        `orm:"size(150)"`
+	Request                string        `orm:"size(255)"`
+	Response               string        `orm:"size(255)"`
+	DateCreated            time.Time     `orm:"type(datetime)"`
+	DateModified           time.Time     `orm:"type(datetime)"`
 	CreatedBy              int
 	ModifiedBy             int
 	Active                 int
