@@ -54,13 +54,9 @@ func (c *RequestController) PayDSTVBill() {
 	phoneNumber := c.Ctx.Input.Header("PhoneNumber")
 	// sourceSystem := c.Ctx.Input.Header("SourceSystem")
 
-	responseCode := false
+	responseCode := "500"
 	responseMessage := "Request not processed"
-	respData := responses.DSTVBillPaymentDataResponse{
-		Description:   "Payment for DSTV bill",
-		Amount:        req.Amount,
-		TransactionId: "",
-	}
+	bilRespData := responses.BilTransactionsData{}
 
 	// transactionInt, err := strconv.ParseInt(req.TransactionId, 10, 64)
 	// if err != nil {
@@ -120,7 +116,7 @@ func (c *RequestController) PayDSTVBill() {
 
 			if _, err := models.AddBil_ins_transactions(&insTransaction); err != nil {
 				logs.Error("Failed to create INS transaction record: %v", err)
-				responseCode = false
+				responseCode = "500"
 				responseMessage = "Failed to create INS transaction record"
 				// resp := responses.ThirdPartyBillPaymentApiResponse{
 				// 	StatusCode:    responseCode,
@@ -139,63 +135,63 @@ func (c *RequestController) PayDSTVBill() {
 				if thirdPartyResponse.ResponseCode == "0001" {
 					// Transaction is pending
 					// Update the transaction status to pending
-					responseCode = true
+					responseCode = "200"
 					responseMessage = "Request is being processed"
 					if status, err := models.GetStatus_codesByCode("PENDING"); err == nil {
 						transaction.Status = status
 						if err := models.UpdateBil_transactionsById(transaction); err != nil {
 							logs.Error("Failed to update transaction status: %v", err)
-							responseCode = false
+							responseCode = "507"
 							responseMessage = "PENDING:: Failed to update transaction status"
 						} else {
-							responseCode = true
+							responseCode = "200"
 							responseMessage = "Request is being processed"
 						}
 					} else {
 						logs.Error("Failed to get status for pending transaction: %v", err)
-						responseCode = false
+						responseCode = "508"
 						responseMessage = "PENDING: Failed to get status for pending transaction"
 					}
 				} else if thirdPartyResponse.ResponseCode == "0000" {
 					// Transaction is successful
 					// Update the transaction status to successful
-					responseCode = true
+					responseCode = "200"
 					responseMessage = "Request is successful"
 					if status, err := models.GetStatus_codesByCode("SUCCESS"); err == nil {
 						transaction.Status = status
 						if err := models.UpdateBil_transactionsById(transaction); err != nil {
 							logs.Error("Failed to update transaction status: %v", err)
-							responseCode = false
+							responseCode = "501"
 							responseMessage = "SUCCESS:: Failed to update transaction status"
 						} else {
 							// Prepare the response
 							logs.Info("Transaction successful: ", transaction)
-							responseCode = true
+							responseCode = "200"
 							responseMessage = "Transaction successful"
 						}
 					} else {
 						logs.Error("Failed to get status for successful transaction: %v", err)
-						responseCode = false
+						responseCode = "509"
 						responseMessage = "SUCCESS:: Failed to get status for successful transaction"
 					}
 				} else {
 					// Transaction failed
 					// Update the transaction status to failed
-					responseCode = false
+					responseCode = "502"
 					responseMessage = "Transaction failed"
 					if status, err := models.GetStatus_codesByCode("FAILED"); err == nil {
 						transaction.Status = status
 						if err := models.UpdateBil_transactionsById(transaction); err != nil {
 							logs.Error("Failed to update transaction status: %v", err)
-							responseCode = false
+							responseCode = "503"
 							responseMessage = "FAILED:: Failed to update transaction status"
 						} else {
-							responseCode = false
+							responseCode = "504"
 							responseMessage = "Transaction failed"
 						}
 					} else {
 						logs.Error("Failed to get status for failed transaction: %v", err)
-						responseCode = false
+						responseCode = "509"
 						responseMessage = "FAILED:: Failed to get status for failed transaction"
 					}
 				}
@@ -212,10 +208,12 @@ func (c *RequestController) PayDSTVBill() {
 					v.DateModified = time.Now()
 					if err := models.UpdateRequestById(v); err != nil {
 						logs.Error("Failed to update request response: %v", err)
-						responseCode = true
+						responseCode = "200"
 						responseMessage = "Success response:: Failed to update request response"
 					} else {
 						logs.Info("Request response updated successfully")
+						responseCode = "200"
+						responseMessage = "Request processed successfully"
 					}
 				} else {
 					logs.Error("Failed to retrieve request by ID: %v", err)
@@ -233,28 +231,23 @@ func (c *RequestController) PayDSTVBill() {
 				// }
 
 				// Create the response object
-				respData = responses.DSTVBillPaymentDataResponse{
-					Description:   "Payment for DSTV bill",
-					Amount:        req.Amount,
-					TransactionId: transaction.TransactionRefNumber,
-				}
 			} else {
 				logs.Error("Failed to process dstv request: %v", err)
-				responseCode = false
+				responseCode = "503"
 				responseMessage = "Failed to process dstv request"
 			}
 		} else {
 			logs.Error("Failed to get biller by code: %v", err)
-			responseCode = false
+			responseCode = "502"
 			responseMessage = "Failed to get biller by code"
 		}
 
 	}
 
-	response := responses.DSTVBillPaymentResponse{
+	response := responses.BilTransactionsResponse{
 		StatusCode:    responseCode,
 		StatusMessage: responseMessage,
-		Result:        &respData,
+		Result:        &bilRespData,
 	}
 	c.Data["json"] = response
 	c.ServeJSON()
