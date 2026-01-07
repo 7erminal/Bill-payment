@@ -16,8 +16,10 @@ type Client struct {
 
 func (c *Client) SendRequest() (*http.Response, error) {
 	// TODO: BaseURLとPathのvalidation
+	fullURL := c.Request.BaseURL + c.Request.Path
+	logs.Info("Full third party URL: ", fullURL)
 	beegoRequest := httplib.NewBeegoRequest(
-		c.Request.BaseURL+c.Request.Path,
+		fullURL,
 		c.Request.Method.String())
 	for key, value := range c.Request.HeaderField {
 		beegoRequest.Header(key, value)
@@ -34,6 +36,7 @@ func (c *Client) SendRequest() (*http.Response, error) {
 		}
 		beegoRequest.PostFile(key, value)
 	}
+
 	if c.Type_ == "params" {
 		for key, value := range c.Request.Params {
 			beegoRequest.Param(key, value)
