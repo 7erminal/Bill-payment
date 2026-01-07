@@ -35,4 +35,4 @@ jobs:
           git pull origin main  # Use branch explicitly
           go build -o bill-payment
           pm2 restart bill-payment || pm2 start bill-payment --name bill-payment
-        EOF
+        EOF 
