@@ -96,7 +96,7 @@ func ProcessBillPayment(c *beego.Controller, req requests.BillPaymentThirdPartyR
 func ProcessGhanaWaterBillPayment(c *beego.Controller, req requests.GhanaWaterBillPaymentThirdPartyRequest) (responses.ThirdPartyBillPaymentResponse, error) {
 	host, _ := beego.AppConfig.String("thirdPartyBaseUrl")
 	prepaidId, _ := beego.AppConfig.String("hubtelPrepaidDepositID")
-	authorizationKey, _ := beego.AppConfig.String("hubtelAuthorizationKey")
+	authorizationKey, _ := beego.AppConfig.String("authorizationKey")
 
 	logs.Info("Sending phone number ", req.PhoneNumber)
 	logs.Info("Authorization Key: ", authorizationKey)
