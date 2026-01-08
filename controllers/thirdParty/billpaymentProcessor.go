@@ -99,6 +99,7 @@ func ProcessGhanaWaterBillPayment(c *beego.Controller, req requests.GhanaWaterBi
 	authorizationKey, _ := beego.AppConfig.String("hubtelAuthorizationKey")
 
 	logs.Info("Sending phone number ", req.PhoneNumber)
+	logs.Info("Authorization Key: ", authorizationKey)
 
 	request := api.NewRequest(
 		host,
