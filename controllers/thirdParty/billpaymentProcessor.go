@@ -100,11 +100,9 @@ func ProcessGhanaWaterBillPayment(c *beego.Controller, req requests.GhanaWaterBi
 
 	logs.Info("Sending phone number ", req.PhoneNumber)
 
-	serviceId, _ := GetServiceId(req.Network)
-
 	request := api.NewRequest(
 		host,
-		"/"+prepaidId+"/"+serviceId,
+		"/"+prepaidId+"/"+req.ServiceId,
 		api.POST)
 	request.HeaderField["Authorization"] = "Basic " + authorizationKey
 	request.InterfaceParams["Destination"] = req.Destination
