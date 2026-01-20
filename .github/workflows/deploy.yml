@@ -28,11 +28,16 @@ jobs:
           GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
       run: |
-        sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@185.211.5.90 << 'EOF'
-          set -e  # Exit on any error
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+
+        ssh -o StrictHostKeyChecking=no root@185.211.5.90 << 'EOF'
+          set -e
           cd /usr/app/mobile-application/Bill-payment
           git stash
-          git pull origin main  # Use branch explicitly
-          go build -o bill-payment
-          pm2 restart bill-payment || pm2 start bill-payment --name bill-payment
-        EOF 
+          git pull origin msysmobilizer
+          go build -o bill-payment-service
+          pm2 restart bill-payment-service || \
+          pm2 start bill-payment-service --name bill-payment-service
+        EOF
