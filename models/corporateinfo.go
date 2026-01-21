@@ -19,8 +19,8 @@ type Corporateinfo struct {
 	Email       string    `orm:"size(100)"`
 	Phone       string    `orm:"size(50)"`
 	Logo        string    `orm:"size(255)"`
-	PrepaidId   string    `orm:"size(255)"`
-	DepositId   string    `orm:"size(255)"`
+	PrepaidId   string    `orm:"size(255);column(prepaidid)"`
+	DepositId   string    `orm:"size(255);column(depositid)"`
 	CreatedAt   time.Time `orm:"type(datetime)"`
 	UpdatedAt   time.Time `orm:"type(datetime)"`
 }
