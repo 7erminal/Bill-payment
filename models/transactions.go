@@ -25,6 +25,7 @@ type Bil_transactions struct {
 	Commission              float64
 	ExternalReferenceNumber string `orm:"size(255)"`
 	IsAsync                 bool
+	CorpId                  string        `orm:"size(255)"`
 	ExtraDetails1           string        `orm:"size(255); column(extra_details_1)"`
 	ExtraDetails2           string        `orm:"size(255); column(extra_details_2)"`
 	ExtraDetails3           string        `orm:"size(255); column(extra_details_3)"`

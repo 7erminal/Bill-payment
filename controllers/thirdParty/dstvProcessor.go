@@ -55,7 +55,7 @@ func DSTVAccountQuery(c *beego.Controller, req requests.DSTVQueryRequest) (respo
 
 func ProcessDSTVBillPayment(c *beego.Controller, req requests.ThirdPartyDSTVPaymentRequest) (responses.ThirdPartyBillPaymentResponse, error) {
 	host, _ := beego.AppConfig.String("thirdPartyBaseUrl")
-	prepaidId, _ := beego.AppConfig.String("hubtelPrepaidDepositID")
+	prepaidId := req.PrepaidId
 	authorizationKey, _ := beego.AppConfig.String("authorizationKey")
 
 	request := api.NewRequest(

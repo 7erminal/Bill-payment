@@ -10,6 +10,7 @@ type DSTVPaymentRequest struct {
 	TransactionId      string
 	Amount             float64
 	PackageType        string
+	ClientId           string
 }
 
 type GOTVPaymentRequest struct {
@@ -17,6 +18,7 @@ type GOTVPaymentRequest struct {
 	TransactionId      string
 	Amount             float64
 	PackageType        string
+	ClientId           string
 }
 
 type ThirdPartyDSTVReqExtraData struct {
@@ -30,4 +32,5 @@ type ThirdPartyDSTVPaymentRequest struct {
 	ClientReference string
 	ExtraData       ThirdPartyDSTVReqExtraData
 	ServiceId       string
+	PrepaidId       string
 }

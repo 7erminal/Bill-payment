@@ -30,6 +30,7 @@ type BillPaymentThirdPartyRequest struct {
 	ExtraData       BillPaymentKeyRequest
 	BundleId        string
 	ServiceId       string
+	PrepaidId       string
 }
 
 type GhanaWaterBillPaymentKeyRequest struct {
@@ -48,6 +49,7 @@ type GhanaWaterBillPaymentThirdPartyRequest struct {
 	ExtraData       GhanaWaterBillPaymentKeyRequest
 	Bundle          string
 	ServiceId       string
+	PrepaidId       string
 }
 
 type ECGQueryRequest struct {
@@ -71,6 +73,7 @@ type ECGPaymentRequest struct {
 	DestinationAccount string
 	Amount             float64
 	PackageType        string
+	ClientId           string
 }
 
 type StartimesPaymentRequest struct {
@@ -78,6 +81,7 @@ type StartimesPaymentRequest struct {
 	DestinationAccount string
 	Amount             float64
 	PackageType        string
+	ClientId           string
 }
 
 type GhanaWaterPaymentRequest struct {
@@ -88,4 +92,5 @@ type GhanaWaterPaymentRequest struct {
 	SessionId          string
 	Email              string
 	PhoneNumber        string
+	ClientId           string
 }
