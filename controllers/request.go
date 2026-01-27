@@ -2,6 +2,7 @@ package controllers
 
 import (
 	thirdparty "billpayment_service/controllers/thirdParty"
+	"billpayment_service/helpers"
 	"billpayment_service/models"
 	"billpayment_service/structs/requests"
 	"billpayment_service/structs/responses"
@@ -83,6 +84,7 @@ func (c *RequestController) PayDSTVBill() {
 		if err == nil {
 			clientId, _ := strconv.ParseInt(req.ClientId, 10, 64)
 			if corpInfo, err := models.GetCorporateinfoById(clientId); err == nil {
+				authkey := helpers.ConvertToBase64(corpInfo.ApiId + ":" + corpInfo.ApiKey)
 				tReq := requests.ThirdPartyDSTVPaymentRequest{
 					Amount:          req.Amount,
 					Destination:     req.DestinationAccount,
@@ -91,6 +93,7 @@ func (c *RequestController) PayDSTVBill() {
 					ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
 					ServiceId:       biller.BillerReferenceId,
 					PrepaidId:       corpInfo.PrepaidId,
+					AuthKey:         authkey,
 				}
 
 				// Insert in INS Transactions table
@@ -749,6 +752,7 @@ func (c *RequestController) PayECGBill() {
 			biller, err := models.GetBillerByCode(billerCode)
 
 			if err == nil {
+				authkey := helpers.ConvertToBase64(corpInfo.ApiId + ":" + corpInfo.ApiKey)
 				tReq := requests.BillPaymentThirdPartyRequest{
 					Amount:          req.Amount,
 					Destination:     req.DestinationAccount,
@@ -757,6 +761,7 @@ func (c *RequestController) PayECGBill() {
 					ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
 					ServiceId:       biller.BillerReferenceId,
 					PrepaidId:       corpInfo.PrepaidId,
+					AuthKey:         authkey,
 				}
 
 				// Call the third-party service to process the request
@@ -1003,6 +1008,8 @@ func (c *RequestController) PayStartimesBill() {
 			biller, err := models.GetBillerByCode(billerCode)
 
 			if err == nil {
+				authkey := helpers.ConvertToBase64(corpInfo.ApiId + ":" + corpInfo.ApiKey)
+				logs.Info("Auth Key: ", authkey)
 				tReq := requests.BillPaymentThirdPartyRequest{
 					Amount:          req.Amount,
 					Destination:     req.DestinationAccount,
@@ -1011,6 +1018,7 @@ func (c *RequestController) PayStartimesBill() {
 					ExtraData:       selectedPackage,
 					ServiceId:       biller.BillerReferenceId,
 					PrepaidId:       corpInfo.PrepaidId,
+					AuthKey:         authkey,
 				}
 
 				logs.Info("Processing bill payment with third-party service: ", tReq)
@@ -1230,6 +1238,7 @@ func (c *RequestController) PayGoTVBill() {
 			biller, err := models.GetBillerByCode(billerCode)
 
 			if err == nil {
+				authkey := helpers.ConvertToBase64(corpInfo.ApiId + ":" + corpInfo.ApiKey)
 				tReq := requests.BillPaymentThirdPartyRequest{
 					Amount:          req.Amount,
 					Destination:     req.DestinationAccount,
@@ -1238,6 +1247,7 @@ func (c *RequestController) PayGoTVBill() {
 					ExtraData:       selectedPackage,                  // Assuming this is the bundle key request
 					ServiceId:       biller.BillerReferenceId,
 					PrepaidId:       corpInfo.PrepaidId,
+					AuthKey:         authkey,
 				}
 
 				// Call the third-party service to process the request
@@ -1462,6 +1472,7 @@ func (c *RequestController) PayWaterBill() {
 			biller, err := models.GetBillerByCode(billerCode)
 
 			if err == nil {
+				authkey := helpers.ConvertToBase64(corpInfo.ApiId + ":" + corpInfo.ApiKey)
 				tReq := requests.GhanaWaterBillPaymentThirdPartyRequest{
 					Amount:          req.Amount,
 					Destination:     req.DestinationAccount,
@@ -1470,6 +1481,7 @@ func (c *RequestController) PayWaterBill() {
 					ExtraData:       selectedPackage,
 					ServiceId:       biller.BillerReferenceId,
 					PrepaidId:       corpInfo.PrepaidId,
+					AuthKey:         authkey,
 				}
 
 				logs.Info("Processing bill payment with third-party service: ", tReq)

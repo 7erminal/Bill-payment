@@ -21,6 +21,8 @@ type Corporateinfo struct {
 	Logo        string    `orm:"size(255)"`
 	PrepaidId   string    `orm:"size(255);column(prepaidid)"`
 	DepositId   string    `orm:"size(255);column(depositid)"`
+	ApiId       string    `orm:"size(255);column(apiid)"`
+	ApiKey      string    `orm:"size(255);column(apikey)"`
 	CreatedAt   time.Time `orm:"type(datetime)"`
 	UpdatedAt   time.Time `orm:"type(datetime)"`
 }

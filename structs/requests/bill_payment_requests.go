@@ -31,6 +31,7 @@ type BillPaymentThirdPartyRequest struct {
 	BundleId        string
 	ServiceId       string
 	PrepaidId       string
+	AuthKey         string
 }
 
 type GhanaWaterBillPaymentKeyRequest struct {
@@ -50,6 +51,7 @@ type GhanaWaterBillPaymentThirdPartyRequest struct {
 	Bundle          string
 	ServiceId       string
 	PrepaidId       string
+	AuthKey         string
 }
 
 type ECGQueryRequest struct {

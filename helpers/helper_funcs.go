@@ -1,6 +1,9 @@
 package helpers
 
-import "billpayment_service/models"
+import (
+	"billpayment_service/models"
+	"encoding/base64"
+)
 
 func GetNetworkCode(networkName string, serviceType string) (resp string) {
 	networkCode := networkName + "_" + serviceType
@@ -15,4 +18,19 @@ func GetServiceId(network string) (string, error) {
 	}
 
 	return "", nil
+}
+
+func ConvertToBase64(input string) string {
+	encoded := ""
+	// encoding logic here
+	encoded = base64.StdEncoding.EncodeToString([]byte(input))
+	return encoded
+}
+
+func ConvertFromBase64(encoded string) (string, error) {
+	decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return "", err
+	}
+	return string(decodedBytes), nil
 }

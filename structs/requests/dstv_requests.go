@@ -33,4 +33,5 @@ type ThirdPartyDSTVPaymentRequest struct {
 	ExtraData       ThirdPartyDSTVReqExtraData
 	ServiceId       string
 	PrepaidId       string
+	AuthKey         string
 }
