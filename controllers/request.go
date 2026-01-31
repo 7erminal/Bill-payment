@@ -1718,6 +1718,8 @@ func (c *RequestController) BilTransactions() {
 
 	bilTransactions := []*responses.BilTransactionsData{}
 
+	logs.Info("Order by ", order)
+
 	l, err := models.GetAllBil_ins_transactions(query, fields, sortby, order, offset, limit)
 	if err != nil {
 		logs.Error("Error fetching records: ", err)
