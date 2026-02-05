@@ -5,6 +5,7 @@ import (
 	"billpayment_service/models"
 	"billpayment_service/structs/requests"
 	"billpayment_service/structs/responses"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"strconv"
@@ -41,6 +42,13 @@ func (c *CallbackController) Post() {
 		c.Ctx.Output.SetStatus(400)
 		c.ServeJSON()
 		return
+	}
+
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, c.Ctx.Input.RequestBody, "", "  "); err != nil {
+		logs.Info("Callback request received is ", string(c.Ctx.Input.RequestBody))
+	} else {
+		logs.Info("Callback request received is \n", prettyJSON.String())
 	}
 
 	responseCode := false

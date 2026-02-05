@@ -4,6 +4,7 @@ import (
 	"billpayment_service/api"
 	"billpayment_service/structs/requests"
 	"billpayment_service/structs/responses"
+	"bytes"
 	"encoding/json"
 	"io"
 
@@ -40,7 +41,12 @@ func DSTVAccountQuery(c *beego.Controller, req requests.DSTVQueryRequest) (respo
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responses.DstvQueryResponseData
@@ -87,7 +93,12 @@ func ProcessDSTVBillPayment(c *beego.Controller, req requests.ThirdPartyDSTVPaym
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responses.ThirdPartyBillPaymentResponse
